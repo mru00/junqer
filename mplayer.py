@@ -7,18 +7,18 @@ STATUS_TIMEOUT = 1000
 #
 #  Provides simple piped I/O to an mplayer process.
 #
-class Mplayer:
+class Mplayer(gobject.GObject):
   
-  pymp, mplayerIn, mplayerOut = None, None, None
   eofHandler, statusQuery = 0, 0
   paused = False
   
   #
   #  Initializes this Mplayer with the specified Pymp.
   #
-  def __init__(self, pymp):
-    self.pymp = pymp
-    
+  def __init__(self):
+    self.__gobject_init__()
+    self.mplayerIn = None
+    self.mplayerOut = None
   #
   #   Plays the specified target.
   #
@@ -103,10 +103,7 @@ class Mplayer:
     
     self.mplayerIn, self.mplayerOut = None, None
     
-    #if self.pymp.playlist.continuous:  #play next target
-    #  self.pymp.playlist.next(None, None)
-    #else:  #reset progress bar
-    #  self.pymp.control.setProgress(-1)
+    self.emit("playback_stopped")
       
     return False
     
@@ -167,4 +164,9 @@ class Mplayer:
       gobject.source_remove(self.eofHandler)
     self.eofHandler = 0
     
-#End of file
+
+
+gobject.type_register(Mplayer)
+gobject.signal_new("playback_stopped", Mplayer, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
+
+

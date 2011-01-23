@@ -3,8 +3,8 @@
   <requires lib="gtk+" version="2.16"/>
   <!-- interface-naming-policy project-wide -->
   <object class="GtkWindow" id="window1">
-    <property name="default_width">440</property>
-    <property name="default_height">250</property>
+    <property name="default_width">523</property>
+    <property name="default_height">589</property>
     <child>
       <object class="GtkVBox" id="vbox1">
         <property name="visible">True</property>
@@ -156,7 +156,7 @@
           <object class="GtkToolbar" id="toolbar1">
             <property name="visible">True</property>
             <child>
-              <object class="GtkToolButton" id="toolbutton1">
+              <object class="GtkToolButton" id="toolbuttonQuit">
                 <property name="visible">True</property>
                 <property name="related_action">actionQuit</property>
                 <property name="use_action_appearance">True</property>
@@ -169,7 +169,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="toolbutton2">
+              <object class="GtkToolButton" id="toolbuttonNewShow">
                 <property name="visible">True</property>
                 <property name="related_action">actionNewShow</property>
                 <property name="use_action_appearance">True</property>
@@ -216,6 +216,34 @@
                 <property name="homogeneous">True</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkSeparatorToolItem" id="toolbutton7">
+                <property name="visible">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolItem" id="playmore">
+                <property name="visible">True</property>
+                <property name="is_important">True</property>
+                <child>
+                  <object class="GtkSpinButton" id="spinbuttonPlayMore">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="invisible_char">•</property>
+                    <property name="snap_to_ticks">True</property>
+                    <property name="numeric">True</property>
+                    <signal name="value_changed" handler="on_spinbuttonPlayMore_value_changed"/>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -227,14 +255,21 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="position">34</property>
-            <property name="position_set">True</property>
             <child>
-              <object class="GtkIconView" id="iconviewShow">
+              <object class="GtkScrolledWindow" id="scrolledwindow2">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <signal name="item_activated" handler="on_iconviewShow_item_activated"/>
-                <signal name="selection_changed" handler="on_iconviewShow_selection_changed"/>
-                <signal name="drag_data_received" handler="on_iconviewShow_drag_data_received"/>
+                <property name="hscrollbar_policy">automatic</property>
+                <property name="vscrollbar_policy">automatic</property>
+                <child>
+                  <object class="GtkIconView" id="iconviewShow">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <signal name="item_activated" handler="on_iconviewShow_item_activated"/>
+                    <signal name="selection_changed" handler="on_iconviewShow_selection_changed"/>
+                    <signal name="drag_data_received" handler="on_iconviewShow_drag_data_received"/>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="resize">False</property>
@@ -295,6 +330,7 @@
     <property name="program_name">Junqer</property>
     <property name="version">0.1</property>
     <property name="copyright" translatable="yes">mru	</property>
+    <property name="comments" translatable="yes">show junking make easy</property>
     <property name="website">http://sisyphus.teil.cc/~mru</property>
     <property name="authors">mru &lt;mru@sisyphus.teil.cc&gt;</property>
     <child internal-child="vbox">
