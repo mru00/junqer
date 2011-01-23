@@ -13,11 +13,13 @@ import gtk
 import os
 import gio
 import pickle
+from mplayer import Mplayer
+
 
 class Episode:
   def __init__(self):
     self.name = ''
-    self.path = ''
+    self.uri = ''
     self.num_played = 0
 
 class Season:
@@ -119,7 +121,7 @@ class JunqerApp(object):
           episode_file = season_dir.get_child(episode_info.get_name())
           episode = Episode()
           episode.name = os.path.split(episode_file.get_path())[-1]
-          episode.path = episode_file.get_uri()
+          episode.uri = episode_file.get_uri()
           season.episodes.append(episode)
 
         season.episodes.sort(key=lambda e: e.name)
@@ -156,8 +158,9 @@ class JunqerApp(object):
     episodeModel = self.treeviewEpisodes.get_model()
     if len(path) == 2:
       selection = episodeModel[path]
-      print "actived:", selection, 
-    print "activaed!"
+      f = gio.File(selection[2])
+      mplayer = Mplayer(None)
+      mplayer.play(f.get_path())
 
 
 
@@ -185,10 +188,10 @@ class JunqerApp(object):
     show_name = showModel[selection[0]][0]
 
     for season in self.model.shows[show_name].seasons:
-      season_iter = episodeModel.append(None, (season.name,0))
+      season_iter = episodeModel.append(None, (season.name,0, ''))
 
       for episode in season.episodes:
-        episodeModel.append(season_iter, (episode.name,0))
+        episodeModel.append(season_iter, (episode.name,0, episode.uri))
 
 
 
@@ -202,7 +205,7 @@ class JunqerApp(object):
 
   def setup_treeview(self):
 
-    model = gtk.TreeStore(str, int)
+    model = gtk.TreeStore(str, int, str)
     self.treeviewEpisodes.set_model(model)
 
     renderer = gtk.CellRendererText()
