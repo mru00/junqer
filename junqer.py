@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-# First run tutorial.glade through gtk-builder-convert with this command:
-# gtk-builder-convert tutorial.glade tutorial.xml
-# Then save this file as tutorial.py and make it executable using this command:
-# chmod a+x tutorial.py
-# And execute it:
-# ./tutorial.py
+# junqer: watching series like a pro!
+
+# mru, 2011-01
+
+
 
 import pygtk
 pygtk.require("2.0")
@@ -26,21 +25,29 @@ class Season:
   def __init__(self):
     self.number = 0
     self.episodes = []
-    self.current_episode = 0
 
 class Show:
   def __init__(self):
     self.name = ''
     self.path = ''
     self.seasons = []
-    self.current_season = 0
+    self.successor = (0,0)
+  def get(self,path):
+    if len(path) == 1:
+      return self.seasons[path[0]]
+    
+    return self.seasons[path[0]].episodes[path[1]]
 
 
 class Model(object):
   def __init__(self):
     self.shows = {}
     self.current_show = ''
-    print "model constructor"
+  def get(self, show, path=None):
+    if path:
+      return self.shows[show].get(path)
+    else:
+      return self.shows[show]
 
 class Player(object):
   pass
@@ -54,8 +61,14 @@ class JunqerApp(object):
   BGCOLOR_UNWATCHED="white"
   BGCOLOR_WATCHED="gray"
   BGCOLOR_SEASON="lightyellow"
+  BGCOLOR_SUCCESSOR="green"
 
   def __init__(self):
+    """
+    setup everything
+    """
+
+
     builder = gtk.Builder()
     builder.add_from_file("junqer.glade")
 
@@ -78,8 +91,6 @@ class JunqerApp(object):
     self.player.connect("playback_stopped", self.on_playback_stopped)
     
     self.currentShow = ''
-    self.currentSeason = 0
-    self.currentEpisode = 0
 
     try:
       self.model = pickle.load(open(self.SAVEFILENAME, 'rb'))
@@ -107,6 +118,10 @@ class JunqerApp(object):
     self.update_show_model()
 
   def on_playback_stopped(self, player):
+    """
+    called from the player when the file is finished playing
+    """
+
     value = int(self.playmore.get_value()) 
     if value > 0 or value == -1:
       self.advance()
@@ -115,13 +130,15 @@ class JunqerApp(object):
       self.playmore.set_value(value -1)
 
 
-  def successor(self, show_name, season_id, episode_id):
-
+  def get_successor(self, show_name, season_id, episode_id):
+    """
+    calulates the indices for the next file, or returns null if no successor
+    """
 
     show = self.model.shows[show_name]
     season = show.seasons[season_id]
     
-    episodeidx = self.currentEpisode + 1
+    episodeidx = episode_id + 1
 
     if episodeidx < len(season.episodes):
       return season_id, episodeidx
@@ -132,7 +149,11 @@ class JunqerApp(object):
 
 
   def advance(self):
-    successor = self.successor(self.currentShow, self.currentSeasons, self.currentEpisode)
+    """
+    start playing the next file, stop if no more files to play
+    """
+
+    successor = self.model.get(self.currentShow).successor
 
     if not successor:
       print "no more episodes available!"
@@ -142,24 +163,26 @@ class JunqerApp(object):
     self.play(self.currentShow, nextSeason, nextEpisode)
 
   def play(self, show_name, season_id, episode_id):
+    """
+    play the given file
+    """
+
     self.currentShow = show_name
-    self.currentSeason = season_id
-    self.currentEpisode = episode_id
 
+    mshow = self.model.get(show_name)
 
-    mshow = self.model.shows[show_name]
-    mshow.current_season = season_id
-    mseason = mshow.seasons[season_id]
-    mseason.current_episode = episode_id
-    mepisode = mseason.episodes[episode_id]
+    lastsuccessor = mshow.successor
+    mshow.successor = self.get_successor(show_name, season_id, episode_id)
+
+    self.format_treeview_item(show_name, lastsuccessor)
+    self.format_treeview_item(show_name, mshow.successor)
+
+    mepisode = self.model.get(show_name, (season_id, episode_id))
     mepisode.play_count += 1
 
-
     if self.get_selected_show_name() == show_name:
-      episodeModel = self.treeviewEpisodes.get_model()
-      episodeModel[(season_id,episode_id) ][1] = mepisode.play_count
-      episodeModel[(season_id,)][1] = sum( [ e.play_count for e in mseason.episodes] )
-      episodeModel[(season_id,episode_id) ][3] = self.BGCOLOR_WATCHED
+      self.format_treeview_item(show_name, (season_id,))
+      self.format_treeview_item(show_name, (season_id,episode_id))
 
     f = gio.File(mepisode.uri) 
 
@@ -170,6 +193,11 @@ class JunqerApp(object):
     self.player.play(f.get_path())
 
   def get_show_from_urls(self, urls):
+    """
+    gnome delivers a newline-seperated list of uri's for drag-and-drop data.
+    this function reads the directory contents of the dragged folders and adds
+    them to the model.
+    """
 
     shows = []
     for show_dir in filter(lambda s: len(s)>0, map(lambda s: s.rstrip() ,urls.split('\n'))):
@@ -181,7 +209,6 @@ class JunqerApp(object):
       show.name.replace('-', ' ')
       show.path = show_dir.get_uri()
       show.seasons = []
-
 
       is_dir = lambda e: e.get_file_type() == gio.FILE_TYPE_DIRECTORY
       is_file = lambda e: e.get_file_type() == gio.FILE_TYPE_REGULAR
@@ -214,6 +241,9 @@ class JunqerApp(object):
       self.model.shows[show.name] = show
 
   def dump_model(self, model):
+    """
+    dump the model to the console
+    """
 
     for show in model.shows:
       print "[show]", show.name
@@ -224,6 +254,9 @@ class JunqerApp(object):
 
 
   def update_show_model(self):
+    """
+    updates the icon view for new data in the internal model
+    """
 
     showModel = self.iconviewShow.get_model()
     showModel.clear()
@@ -235,6 +268,9 @@ class JunqerApp(object):
 
 
   def on_treeviewEpisodes_row_activated(self, treeview, path, view_column):
+    """
+    double click on file
+    """
 
     episodeModel = self.treeviewEpisodes.get_model()
     if len(path) != 2:
@@ -244,6 +280,9 @@ class JunqerApp(object):
     self.play(show, path[0], path[1])
 
   def get_selected_show_name(self):
+    """
+    returns the name of the currently selected show-icon
+    """
 
     showSelection = self.iconviewShow.get_selected_items()[0]
 
@@ -257,6 +296,10 @@ class JunqerApp(object):
     pass
 
   def on_iconviewShow_drag_data_received(self, widget, context, x, y, selection, targetType, time):
+    """ 
+    d'n'd - handler
+    see get_show_from_urls for details
+    """
 
     self.get_show_from_urls(selection.data)
     self.update_show_model()
@@ -267,31 +310,62 @@ class JunqerApp(object):
     pass
 
   def on_show_selected(self, path):
+    """
+    show icon selected -> generate the treeview, treeview-model
+    """
     episodeModel = self.treeviewEpisodes.get_model()
     episodeModel.clear()
 
     show_name = self.get_selected_show_name()
 
+    sid = 0
     for season in self.model.shows[show_name].seasons:
       season_iter = episodeModel.append(None, (season.name,0, '', self.BGCOLOR_SEASON))
-
-      n = 0
+      
+      eid = 0
       for episode in season.episodes:
-        if episode.play_count >0:
-          color = self.BGCOLOR_WATCHED 
-        else:
-          color = self.BGCOLOR_UNWATCHED
+        episode_iter = episodeModel.append(season_iter, (episode.name, episode.play_count, episode.uri, ''))
 
-        episodeModel.append(season_iter, (episode.name, episode.play_count, episode.uri, color))
-        n += episode.play_count
+        self.format_treeview_item(show_name, (sid, eid))
+        eid += 1
 
-      episodeModel[season_iter][1] = n
+      sid += 1
 
-    self.treeviewEpisodes.expand_row((self.model.shows[show_name].current_season,), False)
+    currentSeason, _ = self.model.get(show_name).successor
 
+    self.treeviewEpisodes.expand_row((currentSeason,), False)
+
+
+  def format_treeview_item(self, show_name, path):
+    """
+    set background, ... for the given treeview item according to its state
+    """
+
+    episodeModel = self.treeviewEpisodes.get_model()
+
+    if len(path) ==1:
+      " it's a season header "
+      episodeModel[path][3] = self.BGCOLOR_SEASON
+      episodeModel[path][1] = sum ([e.play_count for e in self.model.get(show_name,(path[0],)).episodes])
+    else:
+      " it's an episode "
+
+      episode = self.model.get(show_name, path) 
+      if self.model.get(show_name).successor == path:
+        color = self.BGCOLOR_SUCCESSOR
+      elif episode.play_count >0:
+        color = self.BGCOLOR_WATCHED 
+      else:
+        color = self.BGCOLOR_UNWATCHED
+
+      episodeModel[path][1] = episode.play_count
+      episodeModel[path][3] = color
 
 
   def on_quit(self, _):
+    """
+    a good chance to save the model
+    """
     try:
       pickle.dump(self.model, open(self.SAVEFILENAME, 'wb'))
     except:
