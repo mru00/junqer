@@ -1,0 +1,12 @@
+Junqer -- a new approach to massively junk series
+
+mru <mru@sisyphus.teil.cc>
+
+Junqer is a simple python / pygtk application that target a
+series-junkie like myself.
+
+ * uses pygtk
+ * developed under/for? ubuntu 10.10
+ * very messy code
+
+hf!
