@@ -4,6 +4,11 @@
 # /me thanks a lot
 
 
+# TODO:
+# check if mplayer is installed at all
+#   -> issue a warning
+
+
 import sys, os, fcntl, gobject, time
 
 STATUS_TIMEOUT = 1000

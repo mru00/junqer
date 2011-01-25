@@ -2,7 +2,7 @@
 
 trap '{echo "some error occured, stopping."; exit 1;}' ERR
 
-# create sample series file structure
+# create sample series file structure in the current directory
 # mru, 2011-01
 
 # sudo apt-get install mjpegtools imagemagick

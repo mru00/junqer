@@ -30,5 +30,9 @@ series-junkie like myself.
   * player configuration
   * fullscreen management
   * play/pause/next/previous... actions
+  * finish standby
+  * some sort of testing / unit testing, whatever
+  * make pychecker work correclty (lots of gtk-related errors)
+
 
 hf!

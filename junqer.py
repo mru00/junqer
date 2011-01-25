@@ -1,22 +1,12 @@
 #!/usr/bin/env python
 
 # junqer: watching series like a pro!
-
 # mru, 2011-01
 
-# http://delivery.acm.org/10.1145/1890000/1883559/10455.html?key1=1883559&key2=8494685921&coll=DL&dl=ACM&CFID=7271442&CFTOKEN=62906732
-
-
-# TODO:
-# check if mplayer is installed at all
-#   -> issue a warning
-
-
-
-import pygtk
+import pygtk, gtk, gio
 pygtk.require("2.0")
-import gtk
-import gio
+
+
 from mplayer import Mplayer
 from showimporter import GnomeShowImporter
 from model import *

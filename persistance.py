@@ -1,6 +1,8 @@
 # persitance manager for junqer
+# mru, 2011-01
 
-import pickle
+
+import pickle, os
 from model import *
 
 

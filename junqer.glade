@@ -260,7 +260,8 @@
           <object class="GtkVPaned" id="vpaned1">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="position">34</property>
+            <property name="position">112</property>
+            <property name="position_set">True</property>
             <child>
               <object class="GtkScrolledWindow" id="scrolledwindow2">
                 <property name="visible">True</property>
