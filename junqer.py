@@ -108,6 +108,7 @@ class JunqerApp(object):
     or returns null if no successor
     """
 
+    show = self.model.get((show_name, ))
     season = self.model.get((show_name, season_id))
     
     episodeidx = episode_id + 1
@@ -138,11 +139,11 @@ class JunqerApp(object):
     play the given file
     """
 
-    self.currentShow = show_name
 
     show_name, season_id, episode_id = path
     mshow = self.model.get((show_name,))
 
+    self.currentShow = show_name
     lastsuccessor = mshow.successor
     mshow.successor = self.get_successor(show_name, season_id, episode_id)
 
@@ -165,18 +166,6 @@ class JunqerApp(object):
     self.player.play(f.get_path())
 
 
-  def dump_model(self, model):
-    """
-    dump the model to the console
-    """
-
-    for show in model.shows:
-      print "[show]", show.name
-      for season in show.seasons:
-        print "  [season]", season.name
-        for episode in season.episodes:
-          print "    [episode]", episode.name
-
 
   def update_show_model(self):
     """
@@ -186,7 +175,9 @@ class JunqerApp(object):
     showModel = self.iconviewShow.get_model()
     showModel.clear()
 
-    pixbuf = self.iconviewShow.render_icon(gtk.STOCK_NEW, size=gtk.ICON_SIZE_BUTTON, detail=None)
+    pixbuf = self.iconviewShow.render_icon(gtk.STOCK_NEW, 
+                                           size=gtk.ICON_SIZE_BUTTON, 
+                                           detail=None)
 
     for name in self.model.shows:
       showModel.append( (name, pixbuf)) 
@@ -209,7 +200,13 @@ class JunqerApp(object):
     returns the name of the currently selected show-icon
     """
 
-    showSelection = self.iconviewShow.get_selected_items()[0]
+    s0 = self.iconviewShow.get_selected_items()
+
+    if not s0 or len(s0) < 1: 
+      # nothing selected, or something unselected
+      return None
+    
+    showSelection = s0[0]
 
     showModel = self.iconviewShow.get_model()
     show = showModel[showSelection][0]
@@ -218,7 +215,8 @@ class JunqerApp(object):
        
 
 
-  def on_iconviewShow_drag_data_received(self, widget, context, x, y, selection, targetType, time):
+  def on_iconviewShow_drag_data_received(self, widget, context, x, y, 
+                                         selection, targetType, time):
     """ 
     d'n'd - handler
     see get_show_from_urls for details
@@ -233,8 +231,16 @@ class JunqerApp(object):
 
     context.finish(True, True, time)
 
-  def on_show_activated(self, path, u):
-    pass
+  def on_show_activated(self, path, u):    
+    show = self.get_selected_show_name()
+    print show
+    successor = self.model.get((show,)).successor
+
+    if not successor:
+      print "no more episodes available!"
+      return
+
+    self.play((show,) + successor)
 
   def on_show_selected(self, path):
     """
@@ -244,14 +250,23 @@ class JunqerApp(object):
     episodeModel.clear()
 
     show_name = self.get_selected_show_name()
+    if not show_name:
+      return
 
     sid = 0
     for season in self.model.get((show_name,)).seasons:
-      season_iter = episodeModel.append(None, (season.name,0, '', self.BGCOLOR_SEASON))
+      season_iter = episodeModel.append(None, 
+                                        (season.name,
+                                         0, 
+                                         '', 
+                                         self.BGCOLOR_SEASON))
       
       eid = 0
       for episode in season.episodes:
-        episode_iter = episodeModel.append(season_iter, (episode.name, episode.play_count, episode.uri, ''))
+        episode_iter = episodeModel.append(season_iter, 
+                                           (episode.name, 
+                                            episode.play_count, 
+                                            episode.uri, ''))
 
         self.update_tree_row((show_name, sid, eid))
         eid += 1
