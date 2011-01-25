@@ -1,12 +1,34 @@
 Junqer -- a new approach to massively junk series
 
 mru <mru@sisyphus.teil.cc>
+2011-01
+
 
 Junqer is a simple python / pygtk application that target a
 series-junkie like myself.
 
- * uses pygtk
- * developed under/for? ubuntu 10.10
- * very messy code
+== uses ==
+
+  * pygtk
+  * glade
+  * gio
+
+== limitations ==
+
+  * currently only mplayer is available
+  * almost everything is hardcoded
+  * developed under/for? ubuntu 10.10
+  * very messy code
+
+== TODO ==
+
+  * player backends (gstreamer/totem/vlc)
+  * gui upgrades 
+  * icon design
+  * smarter "successor" / currently playing markup
+  * save time when an episode stopped -> restart/resume half-played episodes  
+  * player configuration
+  * fullscreen management
+  * play/pause/next/previous... actions
 
 hf!

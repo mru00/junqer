@@ -5,7 +5,7 @@ from model import *
 
 
 CURRENT_VERSION=1
-SAVEFILENAME='/home/mru/.junqer.dat'
+SAVEFILENAME=os.path.expanduser("~/.junqer.dat")
 
 
 def load():

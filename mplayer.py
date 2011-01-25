@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# based on pymp -> http://jdolan.dyndns.org/trac/wiki/Pymp
+# /me thanks a lot
+
+
 import sys, os, fcntl, gobject, time
 
 STATUS_TIMEOUT = 1000
