@@ -4,50 +4,24 @@
 
 # mru, 2011-01
 
+# http://delivery.acm.org/10.1145/1890000/1883559/10455.html?key1=1883559&key2=8494685921&coll=DL&dl=ACM&CFID=7271442&CFTOKEN=62906732
+
+
+# TODO:
+# check if mplayer is installed at all
+#   -> issue a warning
+
 
 
 import pygtk
 pygtk.require("2.0")
 import gtk
-import os
 import gio
-import pickle
 from mplayer import Mplayer
-
-
-class Episode:
-  def __init__(self):
-    self.name = ''
-    self.uri = ''
-    self.play_count = 0
-
-class Season:
-  def __init__(self):
-    self.number = 0
-    self.episodes = []
-
-class Show:
-  def __init__(self):
-    self.name = ''
-    self.path = ''
-    self.seasons = []
-    self.successor = (0,0)
-  def get(self,path):
-    if len(path) == 1:
-      return self.seasons[path[0]]
-    
-    return self.seasons[path[0]].episodes[path[1]]
-
-
-class Model(object):
-  def __init__(self):
-    self.shows = {}
-    self.current_show = ''
-  def get(self, show, path=None):
-    if path:
-      return self.shows[show].get(path)
-    else:
-      return self.shows[show]
+from showimporter import GnomeShowImporter
+from model import *
+from suspend import *
+from persistance import *
 
 class Player(object):
   pass
@@ -55,13 +29,17 @@ class Player(object):
 class MPlayer(Player):
   pass
 
+  
+
 class JunqerApp(object):       
 
-  SAVEFILENAME='/home/mru/.junqer.dat'
   BGCOLOR_UNWATCHED="white"
   BGCOLOR_WATCHED="gray"
   BGCOLOR_SEASON="lightyellow"
   BGCOLOR_SUCCESSOR="green"
+  TREECOL_BGCOLOR=3
+  TREECOL_PLAYCOUNT=2
+  TREECOL_TEXT=0
 
   def __init__(self):
     """
@@ -75,14 +53,14 @@ class JunqerApp(object):
     builder.connect_signals({
       "on_window_destroy" : self.on_quit,
       "on_actionAbout_activate": self.on_actionAbout_activate,
+      "on_actionSave_activate": self.on_actionSave_activate,
       "on_actionQuit_activate": self.on_quit,
       "on_iconviewShow_item_activated": self.on_show_activated, 
-      "on_spinbuttonPlayMore_value_changed": self.on_spinbuttonPlayMore_value_changed,
       "on_iconviewShow_selection_changed": self.on_show_selected,
       "on_iconviewShow_drag_data_received": self.on_iconviewShow_drag_data_received,
       "on_treeviewEpisodes_row_activated": self.on_treeviewEpisodes_row_activated})
 
-    self.window = builder.get_object("window1")
+    self.window = builder.get_object("main_window")
     self.treeviewEpisodes = builder.get_object("treeviewEpisodes")
     self.iconviewShow = builder.get_object("iconviewShow")
     self.aboutBox = builder.get_object("aboutdialog1")
@@ -92,19 +70,12 @@ class JunqerApp(object):
     
     self.currentShow = ''
 
-    try:
-      self.model = pickle.load(open(self.SAVEFILENAME, 'rb'))
-    except:
-      print "failed to load data!"
-      self.model = Model()
-
+    self.model = load()
 
     self.playmore = gtk.Adjustment(value=0, lower=-1, upper=100, step_incr=1)
 
     builder.get_object("spinbuttonPlayMore").set_adjustment(self.playmore)
     
-    self.playmore.connect('changed', self.on_spinbuttonPlayMore_value_changed)
-
     self.window.connect("destroy", self.on_quit)
 
     TARGET_TYPE_TEXT=80
@@ -114,8 +85,17 @@ class JunqerApp(object):
     self.setup_treeview()
     self.setup_showview()
 
-    self.iconviewShow.enable_model_drag_dest(targets, gtk.gdk.ACTION_LINK)
+    self.iconviewShow.enable_model_drag_dest(targets, 
+        gtk.gdk.ACTION_LINK)
     self.update_show_model()
+
+  def suspend(self):
+    """
+    send computer to sleep
+    """
+
+    get_suspender().suspend()
+
 
   def on_playback_stopped(self, player):
     """
@@ -129,14 +109,16 @@ class JunqerApp(object):
     if value > 0:
       self.playmore.set_value(value -1)
 
+  def on_actionSave_activate(self, sender):
+    save(self.model)
 
   def get_successor(self, show_name, season_id, episode_id):
     """
-    calulates the indices for the next file, or returns null if no successor
+    calulates the indices for the next file, 
+    or returns null if no successor
     """
 
-    show = self.model.shows[show_name]
-    season = show.seasons[season_id]
+    season = self.model.get((show_name, season_id))
     
     episodeidx = episode_id + 1
 
@@ -153,36 +135,36 @@ class JunqerApp(object):
     start playing the next file, stop if no more files to play
     """
 
-    successor = self.model.get(self.currentShow).successor
+    successor = self.model.get((self.currentShow,)).successor
 
     if not successor:
       print "no more episodes available!"
       return
 
-    nextSeason, nextEpisode = successor
-    self.play(self.currentShow, nextSeason, nextEpisode)
+    self.play((self.currentShow,) + successor)
 
-  def play(self, show_name, season_id, episode_id):
+  def play(self, path):
     """
     play the given file
     """
 
     self.currentShow = show_name
 
-    mshow = self.model.get(show_name)
+    show_name, season_id, episode_id = path
+    mshow = self.model.get((show_name,))
 
     lastsuccessor = mshow.successor
     mshow.successor = self.get_successor(show_name, season_id, episode_id)
 
-    self.format_treeview_item(show_name, lastsuccessor)
-    self.format_treeview_item(show_name, mshow.successor)
+    self.update_tree_row((show_name,)+ lastsuccessor)
+    self.update_tree_row((show_name,)+ mshow.successor)
 
-    mepisode = self.model.get(show_name, (season_id, episode_id))
+    mepisode = self.model.get((show_name, season_id, episode_id))
     mepisode.play_count += 1
 
     if self.get_selected_show_name() == show_name:
-      self.format_treeview_item(show_name, (season_id,))
-      self.format_treeview_item(show_name, (season_id,episode_id))
+      self.update_tree_row((show_name, season_id))
+      self.update_tree_row((show_name, season_id,episode_id))
 
     f = gio.File(mepisode.uri) 
 
@@ -192,53 +174,6 @@ class JunqerApp(object):
     self.player.close()
     self.player.play(f.get_path())
 
-  def get_show_from_urls(self, urls):
-    """
-    gnome delivers a newline-seperated list of uri's for drag-and-drop data.
-    this function reads the directory contents of the dragged folders and adds
-    them to the model.
-    """
-
-    shows = []
-    for show_dir in filter(lambda s: len(s)>0, map(lambda s: s.rstrip() ,urls.split('\n'))):
-
-      show_dir = gio.File(show_dir)
-
-      show = Show()
-      show.name = os.path.split(show_dir.get_path())[-1]
-      show.name.replace('-', ' ')
-      show.path = show_dir.get_uri()
-      show.seasons = []
-
-      is_dir = lambda e: e.get_file_type() == gio.FILE_TYPE_DIRECTORY
-      is_file = lambda e: e.get_file_type() == gio.FILE_TYPE_REGULAR
-
-      show_infos = show_dir.enumerate_children('standard::name,standard::type')
-      for season_info in filter(is_dir, show_infos):
-
-        season_dir = show_dir.get_child(season_info.get_name())
-
-        season = Season()
-        season.name = os.path.split(season_dir.get_path())[-1]
-        season.path = season_dir.get_uri()
-        season.episodes = []
-
-        episode_infos = season_dir.enumerate_children('standard::name,standard::type')
-        for episode_info in filter(is_file, episode_infos):
-
-          episode_file = season_dir.get_child(episode_info.get_name())
-          episode = Episode()
-          episode.name = os.path.split(episode_file.get_path())[-1]
-          episode.uri = episode_file.get_uri()
-          season.episodes.append(episode)
-
-        season.episodes.sort(key=lambda e: e.name)
-        show.seasons.append(season)
-          
-      show.seasons.sort(key=lambda s: s.name)
-      shows.append(show)
-
-      self.model.shows[show.name] = show
 
   def dump_model(self, model):
     """
@@ -277,7 +212,7 @@ class JunqerApp(object):
       return
 
     show = self.get_selected_show_name()
-    self.play(show, path[0], path[1])
+    self.play((show,) + path)
 
   def get_selected_show_name(self):
     """
@@ -292,8 +227,6 @@ class JunqerApp(object):
     return show
        
 
-  def on_spinbuttonPlayMore_value_changed(self, adjust):
-    pass
 
   def on_iconviewShow_drag_data_received(self, widget, context, x, y, selection, targetType, time):
     """ 
@@ -301,7 +234,11 @@ class JunqerApp(object):
     see get_show_from_urls for details
     """
 
-    self.get_show_from_urls(selection.data)
+    importer = GnomeShowImporter()
+    shows= importer.get_show_from_urls(selection.data)
+    for show in shows:
+      self.model.shows[show.name] = show
+
     self.update_show_model()
 
     context.finish(True, True, time)
@@ -319,57 +256,66 @@ class JunqerApp(object):
     show_name = self.get_selected_show_name()
 
     sid = 0
-    for season in self.model.shows[show_name].seasons:
+    for season in self.model.get((show_name,)).seasons:
       season_iter = episodeModel.append(None, (season.name,0, '', self.BGCOLOR_SEASON))
       
       eid = 0
       for episode in season.episodes:
         episode_iter = episodeModel.append(season_iter, (episode.name, episode.play_count, episode.uri, ''))
 
-        self.format_treeview_item(show_name, (sid, eid))
+        self.update_tree_row((show_name, sid, eid))
         eid += 1
 
       sid += 1
 
-    currentSeason, _ = self.model.get(show_name).successor
+    currentSeason, _ = self.model.get((show_name,)).successor
 
     self.treeviewEpisodes.expand_row((currentSeason,), False)
 
 
-  def format_treeview_item(self, show_name, path):
+  def update_tree_row(self, path):
     """
     set background, ... for the given treeview item according to its state
     """
 
+    # this may happen when no successor is found, 
+    # e.g. when the series has no more episodes
+    if not path:
+      return
+
     episodeModel = self.treeviewEpisodes.get_model()
 
-    if len(path) ==1:
+    def set_bgcolor(path,color):
+      episodeModel[path][self.TREECOL_BGCOLOR] = color
+    def set_text(path,text):
+      pass
+    def set_playcount(path,pc):
+      episodeModel[path][self.TREECOL_PLAYCOUNT] = pc
+
+    if len(path) == 2:
       " it's a season header "
-      episodeModel[path][3] = self.BGCOLOR_SEASON
-      episodeModel[path][1] = sum ([e.play_count for e in self.model.get(show_name,(path[0],)).episodes])
+      set_bgcolor(path[1:],self.BGCOLOR_SEASON)
+      set_playcount(path[1:], sum ([e.play_count for e in self.model.get(path).episodes]))
     else:
       " it's an episode "
 
-      episode = self.model.get(show_name, path) 
-      if self.model.get(show_name).successor == path:
+      episode = self.model.get(path) 
+      if self.model.get((path[0],)).successor == path[1:]:
         color = self.BGCOLOR_SUCCESSOR
       elif episode.play_count >0:
         color = self.BGCOLOR_WATCHED 
       else:
         color = self.BGCOLOR_UNWATCHED
 
-      episodeModel[path][1] = episode.play_count
-      episodeModel[path][3] = color
+      set_playcount(path[1:], episode.play_count)
+      set_bgcolor(path[1:], color)
 
 
   def on_quit(self, _):
     """
     a good chance to save the model
     """
-    try:
-      pickle.dump(self.model, open(self.SAVEFILENAME, 'wb'))
-    except:
-      print "failed to save"
+    save(self.model)
     gtk.main_quit()
 
 
@@ -378,25 +324,27 @@ class JunqerApp(object):
     model = gtk.TreeStore(str, int, str, str)
     self.treeviewEpisodes.set_model(model)
 
-    renderer = gtk.CellRendererText()
-    column = gtk.TreeViewColumn('Show', renderer, text=0, background=3)
+    column = gtk.TreeViewColumn('Show', 
+                                gtk.CellRendererText(), 
+                                text=self.TREECOL_TEXT, 
+                                background=self.TREECOL_BGCOLOR)
     self.treeviewEpisodes.append_column(column)
     
-    renderer = gtk.CellRendererText()
-    column = gtk.TreeViewColumn('Times watched', renderer, text=1, background=3)
+    column = gtk.TreeViewColumn('Times watched', 
+                                gtk.CellRendererText(), 
+                                text=self.TREECOL_PLAYCOUNT, 
+                                background=self.TREECOL_BGCOLOR)
+
     self.treeviewEpisodes.append_column(column)
 
 
   def setup_showview(self):
     model = gtk.ListStore(str, gtk.gdk.Pixbuf)
 
-    pixbuf = self.iconviewShow.render_icon(gtk.STOCK_NEW, size=gtk.ICON_SIZE_BUTTON, detail=None)
-
     self.iconviewShow.set_model(model)
     self.iconviewShow.set_text_column(0)
     self.iconviewShow.set_pixbuf_column(1)
     self.iconviewShow.set_reorderable(True)
-
 
   def on_actionAbout_activate(self, _):
     self.aboutBox.run()

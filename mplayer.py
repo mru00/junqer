@@ -11,6 +11,8 @@ class Mplayer(gobject.GObject):
   
   eofHandler, statusQuery = 0, 0
   paused = False
+  MPLAYER_VO='vdpau'
+  MPLAYER_FS=True
   
   #
   #  Initializes this Mplayer with the specified Pymp.
@@ -24,7 +26,11 @@ class Mplayer(gobject.GObject):
   #
   def play(self, target):
     
-    mpc = "mplayer -slave -quiet \"" + target + "\" 2>/dev/null"
+    if self.MPLAYER_FS:
+      fs = " -fs"
+    else:
+      fs = ""
+    mpc = "mplayer -slave -vo %s -quiet %s '%s' 2>/dev/null" % (self.MPLAYER_VO, fs, target)
     
     self.mplayerIn, self.mplayerOut = os.popen2(mpc)  #open pipe
     fcntl.fcntl(self.mplayerOut, fcntl.F_SETFL, os.O_NONBLOCK)
