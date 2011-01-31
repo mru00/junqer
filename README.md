@@ -1,11 +1,17 @@
 Junqer -- a new approach to massively junk series
+=================================================
 
 mru <mru@sisyphus.teil.cc>
 2011-01
 
 
+
+abstract
+--------
+
 Junqer is a simple python / pygtk application that targets a
 series-junkie like myself.
+
 
 uses
 ----
@@ -14,14 +20,16 @@ uses
   * glade
   * gio
 
-== limitations ==
+limitations
+-----------
 
   * currently only mplayer is available
   * almost everything is hardcoded
   * developed under/for? ubuntu 10.10
   * very messy code
 
-== TODO ==
+TODO
+----
 
   * player backends (gstreamer/totem/vlc)
   * gui upgrades 
