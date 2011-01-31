@@ -7,7 +7,8 @@ mru <mru@sisyphus.teil.cc>
 Junqer is a simple python / pygtk application that targets a
 series-junkie like myself.
 
-== uses ==
+uses
+----
 
   * pygtk
   * glade
