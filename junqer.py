@@ -15,7 +15,7 @@ from model import *
 from suspend import *
 from persistance import *
 
-
+# random comment
 gtk.gdk.threads_init()
 
 
