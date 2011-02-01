@@ -7,17 +7,14 @@ import pygtk, gtk, gio
 pygtk.require("2.0")
 
 
-from mplayer import Mplayer
+from player import Player
+from mplayer import MPlayer
+from gstreamer import gstreamerPlayer
 from showimporter import GnomeShowImporter
 from model import *
 from suspend import *
 from persistance import *
 
-class Player(object):
-  pass
-
-class MPlayer(Player):
-  pass
 
   
 
@@ -48,15 +45,16 @@ class JunqerApp(object):
       "on_iconviewShow_item_activated": self.on_show_activated, 
       "on_iconviewShow_selection_changed": self.on_show_selected,
       "on_iconviewShow_drag_data_received": self.on_iconviewShow_drag_data_received,
+      "on_drawingareaPlayer_key_release_event": self.on_drawingareaPlayer_key_release_event,
+      "on_drawingareaPlayer_button_press_event": self.on_drawingareaPlayer_button_press_event,
       "on_treeviewEpisodes_row_activated": self.on_treeviewEpisodes_row_activated})
 
     self.window = builder.get_object("main_window")
     self.treeviewEpisodes = builder.get_object("treeviewEpisodes")
     self.iconviewShow = builder.get_object("iconviewShow")
     self.aboutBox = builder.get_object("aboutdialog1")
+    self.playWindow = builder.get_object("drawingareaPlayer")
 
-    self.player = Mplayer()
-    self.player.connect("playback_stopped", self.on_playback_stopped)
     
     self.currentShow = ''
 
@@ -78,6 +76,15 @@ class JunqerApp(object):
     self.iconviewShow.enable_model_drag_dest(targets, 
         gtk.gdk.ACTION_LINK)
     self.update_show_model()
+
+    self.player = gstreamerPlayer(self.playWindow.window.xid)
+    self.player.connect("playback_stopped", self.on_playback_stopped)
+
+  def on_drawingareaPlayer_key_release_event(self, w, event):
+    print "onkeyrelease", event
+
+  def on_drawingareaPlayer_button_press_event(self, w, event):
+    print "onbuttonpress", event
 
   def suspend(self):
     """
@@ -162,8 +169,8 @@ class JunqerApp(object):
     print
     print "playing file", f.get_path()
 
-    self.player.close()
-    self.player.play(f.get_path())
+    #self.player.close()
+    self.player.play((f.get_path(),f.get_uri()))
 
 
 

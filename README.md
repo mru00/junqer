@@ -51,5 +51,9 @@ TODO
   * save settings, gui size, player settings, ...
   * also load metadata from tvdb (episode release date, length!)
 
+  * playmodes:
+    - chronoscopic
+    - random
+    - play least watched
 
 hf!

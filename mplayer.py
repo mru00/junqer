@@ -8,7 +8,7 @@
 # check if mplayer is installed at all
 #   -> issue a warning
 
-
+from player import Player
 import sys, os, fcntl, gobject, time
 
 STATUS_TIMEOUT = 1000
@@ -16,7 +16,7 @@ STATUS_TIMEOUT = 1000
 #
 #  Provides simple piped I/O to an mplayer process.
 #
-class Mplayer(gobject.GObject):
+class MPlayer(Player):
   
   eofHandler, statusQuery = 0, 0
   paused = False
@@ -26,20 +26,24 @@ class Mplayer(gobject.GObject):
   #
   #  Initializes this Mplayer with the specified Pymp.
   #
-  def __init__(self):
-    self.__gobject_init__()
+  def __init__(self,wid):
+    super(MPlayer,self).__init__()
     self.mplayerIn = None
     self.mplayerOut = None
+    self.wid = wid
   #
   #   Plays the specified target.
   #
-  def play(self, target):
+  def play(self, (path,uri)):
     
     if self.MPLAYER_FS:
       fs = " -fs"
     else:
       fs = ""
-    mpc = "mplayer -slave -vo %s -quiet %s '%s' 2>/dev/null" % (self.MPLAYER_VO, fs, target)
+    mpc = "mplayer -wid %d -slave -vo %s -quiet %s '%s' 2>/dev/null" % (self.wid, 
+        self.MPLAYER_VO, 
+        fs, 
+        path)
     
     self.mplayerIn, self.mplayerOut = os.popen2(mpc)  #open pipe
     fcntl.fcntl(self.mplayerOut, fcntl.F_SETFL, os.O_NONBLOCK)
@@ -115,7 +119,13 @@ class Mplayer(gobject.GObject):
   def handleEof(self, source, condition):
     
     self.stopStatusQuery()  #cancel query
-    
+    while True: 
+      try:  #attempt to fetch last line of output
+        line = self.mplayerOut.readline()
+        print "mplayer:" , line
+        if not line: break
+      except StandardError:
+        break
     self.mplayerIn, self.mplayerOut = None, None
     
     self.emit("playback_stopped")
@@ -137,6 +147,7 @@ class Mplayer(gobject.GObject):
     while True:
       try:  #attempt to fetch last line of output
         line = self.mplayerOut.readline()
+        print "mplayer:" , line
       except StandardError:
         break
         
@@ -179,9 +190,5 @@ class Mplayer(gobject.GObject):
       gobject.source_remove(self.eofHandler)
     self.eofHandler = 0
     
-
-
-gobject.type_register(Mplayer)
-gobject.signal_new("playback_stopped", Mplayer, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
 
 

@@ -257,25 +257,59 @@
           </packing>
         </child>
         <child>
-          <object class="GtkVPaned" id="vpaned1">
+          <object class="GtkHPaned" id="hpaned1">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="position">112</property>
+            <property name="position">222</property>
             <property name="position_set">True</property>
             <child>
-              <object class="GtkScrolledWindow" id="scrolledwindow2">
+              <object class="GtkVPaned" id="vpaned1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">automatic</property>
-                <property name="vscrollbar_policy">automatic</property>
+                <property name="position">112</property>
+                <property name="position_set">True</property>
                 <child>
-                  <object class="GtkIconView" id="iconviewShow">
+                  <object class="GtkScrolledWindow" id="scrolledwindow2">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <signal name="item_activated" handler="on_iconviewShow_item_activated"/>
-                    <signal name="selection_changed" handler="on_iconviewShow_selection_changed"/>
-                    <signal name="drag_data_received" handler="on_iconviewShow_drag_data_received"/>
+                    <property name="hscrollbar_policy">automatic</property>
+                    <property name="vscrollbar_policy">automatic</property>
+                    <child>
+                      <object class="GtkIconView" id="iconviewShow">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <signal name="item_activated" handler="on_iconviewShow_item_activated"/>
+                        <signal name="selection_changed" handler="on_iconviewShow_selection_changed"/>
+                        <signal name="drag_data_received" handler="on_iconviewShow_drag_data_received"/>
+                      </object>
+                    </child>
                   </object>
+                  <packing>
+                    <property name="resize">False</property>
+                    <property name="shrink">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow" id="scrolledwindow1">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="hscrollbar_policy">automatic</property>
+                    <property name="vscrollbar_policy">automatic</property>
+                    <child>
+                      <object class="GtkTreeView" id="treeviewEpisodes">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="reorderable">True</property>
+                        <property name="search_column">0</property>
+                        <property name="enable_tree_lines">True</property>
+                        <signal name="row_activated" handler="on_treeviewEpisodes_row_activated"/>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="resize">False</property>
+                    <property name="shrink">True</property>
+                  </packing>
                 </child>
               </object>
               <packing>
@@ -284,24 +318,14 @@
               </packing>
             </child>
             <child>
-              <object class="GtkScrolledWindow" id="scrolledwindow1">
+              <object class="GtkDrawingArea" id="drawingareaPlayer">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">automatic</property>
-                <property name="vscrollbar_policy">automatic</property>
-                <child>
-                  <object class="GtkTreeView" id="treeviewEpisodes">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="reorderable">True</property>
-                    <property name="search_column">0</property>
-                    <property name="enable_tree_lines">True</property>
-                    <signal name="row_activated" handler="on_treeviewEpisodes_row_activated"/>
-                  </object>
-                </child>
+                <property name="has_focus">True</property>
+                <signal name="button_press_event" handler="on_drawingareaPlayer_button_press_event"/>
               </object>
               <packing>
-                <property name="resize">False</property>
+                <property name="resize">True</property>
                 <property name="shrink">True</property>
               </packing>
             </child>
