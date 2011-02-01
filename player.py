@@ -1,27 +1,20 @@
-#!/usr/bin/env python
-
-# based on pymp -> http://jdolan.dyndns.org/trac/wiki/Pymp
-# /me thanks a lot
+# mru, 2011-01
 
 
-# TODO:
-# check if mplayer is installed at all
-#   -> issue a warning
+import gobject
 
-
-import sys, os, fcntl, gobject, time
-
-STATUS_TIMEOUT = 1000
-
-#
-#  Provides simple piped I/O to an mplayer process.
-#
 class Player(gobject.GObject):
-  
-  paused = False
+  """
+  baseclass for the player implementations and
+  informal interface specification for the player classes
+  """
   
   def __init__(self):
+    """
+    wid: x-window-id where the player should be embedded
+    """
     self.__gobject_init__()
+    
 
   def play(self, target):
     """
@@ -43,6 +36,10 @@ class Player(gobject.GObject):
     #self.pymp.mplayer.cmd("seek " + str(amount) + " " + str(mode))
     #self.pymp.mplayer.queryStatus()
     pass
+
+  def set_fullscreen(self, fs):
+    pass
+
   
 
 gobject.type_register(Player)

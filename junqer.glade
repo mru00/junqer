@@ -322,6 +322,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="has_focus">True</property>
+                <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
                 <signal name="button_press_event" handler="on_drawingareaPlayer_button_press_event"/>
               </object>
               <packing>
@@ -408,5 +409,8 @@
     <property name="short_label">Save</property>
     <property name="stock_id">gtk-save</property>
     <signal name="activate" handler="on_actionSave_activate"/>
+  </object>
+  <object class="GtkAction" id="actionFullscreen">
+    <property name="stock_id">gtk-fullscreen</property>
   </object>
 </interface>

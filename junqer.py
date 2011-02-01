@@ -16,7 +16,8 @@ from suspend import *
 from persistance import *
 
 
-  
+gtk.gdk.threads_init()
+
 
 class JunqerApp(object):       
 
@@ -84,7 +85,10 @@ class JunqerApp(object):
     print "onkeyrelease", event
 
   def on_drawingareaPlayer_button_press_event(self, w, event):
-    print "onbuttonpress", event
+    if event.type == gtk.gdk._2BUTTON_PRESS:
+      print "fullscreen!"
+      self.window.fullscreen()
+      #self.player.set_fullscreen(True)
 
   def suspend(self):
     """
@@ -240,7 +244,6 @@ class JunqerApp(object):
 
   def on_show_activated(self, path, u):    
     show = self.get_selected_show_name()
-    print show
     successor = self.model.get((show,)).successor
 
     if not successor:

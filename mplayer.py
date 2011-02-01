@@ -50,12 +50,17 @@ class MPlayer(Player):
     
     self.startEofHandler()
     self.startStatusQuery()
-    
-  #
-  #  Issues command to mplayer.
-  #
+
+
+
+
   def cmd(self, command):
+    """
+    Issues command to mplayer.
+    """
     
+
+    print "issuing command:", command
     if not self.mplayerIn:
       return
     
@@ -84,17 +89,28 @@ class MPlayer(Player):
     self.cmd("pause")
     
   #
-  #  Seeks the amount using the specified mode.  See mplayer docs.
+  
   #
   def seek(self, amount, mode=0):
+    """
+    Seeks the amount using the specified mode.  See mplayer docs.
+    """
+
+
     #self.pymp.mplayer.cmd("seek " + str(amount) + " " + str(mode))
     #self.pymp.mplayer.queryStatus()
     pass
-  
-  #
-  #  Cleanly closes any IPC resources to mplayer.
-  #
+
+  def set_fullscreen(self, fs):
+    if fs:
+      self.cmd("vo_fullscreen 1")
+    else:
+      self.cmd("set_property fullscreen 0")
+
   def close(self):
+    """
+    Cleanly closes any IPC resources to mplayer.
+    """
     
     if self.paused:  #untoggle pause to cleanly quit
       self.pause()
@@ -147,7 +163,7 @@ class MPlayer(Player):
     while True:
       try:  #attempt to fetch last line of output
         line = self.mplayerOut.readline()
-        print "mplayer:" , line
+        print "mplayer:" , line,
       except StandardError:
         break
         

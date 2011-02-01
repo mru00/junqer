@@ -7,6 +7,9 @@ import gst
 
 from player import Player
 
+
+gobject.threads_init()
+
 class gstreamerPlayer(Player):
   
   eofHandler, statusQuery = 0, 0
@@ -41,7 +44,6 @@ class gstreamerPlayer(Player):
   def on_message(self, bus, message):
     t = message.type
     if t == gst.MESSAGE_EOS:
-      print "eos"
       self.player.set_state(gst.STATE_NULL)
       self.emit("playback_stopped")
     elif t == gst.MESSAGE_ERROR:
