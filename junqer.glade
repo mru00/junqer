@@ -224,6 +224,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="invisible_char">•</property>
+                    <property name="adjustment">adjustmentPlayMore</property>
                     <property name="snap_to_ticks">True</property>
                     <property name="numeric">True</property>
                   </object>
@@ -318,12 +319,83 @@
               </packing>
             </child>
             <child>
-              <object class="GtkDrawingArea" id="drawingareaPlayer">
+              <object class="GtkVBox" id="vboxPlayer">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="has_focus">True</property>
-                <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
-                <signal name="button_press_event" handler="on_drawingareaPlayer_button_press_event"/>
+                <child>
+                  <object class="GtkDrawingArea" id="drawingareaPlayer">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="events">GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
+                    <signal name="button_press_event" handler="on_drawingareaPlayer_button_press_event"/>
+                    <signal name="expose_event" handler="on_drawingareaPlayer_expose_event"/>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolbar" id="toolbarPlayer">
+                    <property name="visible">True</property>
+                    <child>
+                      <object class="GtkToolButton" id="button_play">
+                        <property name="visible">True</property>
+                        <property name="related_action">actionPlayPause</property>
+                        <property name="use_action_appearance">True</property>
+                        <property name="label" translatable="yes">toolbutton2</property>
+                        <property name="use_underline">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="homogeneous">True</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkToolItem" id="button_slider">
+                        <property name="visible">True</property>
+                        <child>
+                          <object class="GtkHScale" id="hscale1">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="adjustment">adjustmentPosition</property>
+                            <property name="draw_value">False</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkToolItem" id="button_volume">
+                        <property name="visible">True</property>
+                        <child>
+                          <object class="GtkVolumeButton" id="volumebutton1">
+                            <property name="label" translatable="yes">button</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="has_tooltip">True</property>
+                            <property name="relief">none</property>
+                            <property name="focus_on_click">False</property>
+                            <property name="orientation">vertical</property>
+                            <property name="adjustment">adjustmentVolume</property>
+                            <property name="icons">audio-volume-muted
+audio-volume-high
+audio-volume-low
+audio-volume-medium</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="resize">True</property>
@@ -412,5 +484,33 @@
   </object>
   <object class="GtkAction" id="actionFullscreen">
     <property name="stock_id">gtk-fullscreen</property>
+  </object>
+  <object class="GtkAction" id="actionPlayPause">
+    <property name="stock_id">gtk-media-play</property>
+    <property name="icon_name">media-playback-start</property>
+    <property name="always_show_image">True</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentVolume">
+    <property name="upper">100</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+    <property name="page_size">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentPlayMore">
+    <property name="lower">-1</property>
+    <property name="upper">100</property>
+    <property name="step_increment">1</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustmentPosition">
+    <property name="upper">100</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+    <property name="page_size">10</property>
+  </object>
+  <object class="GtkWindow" id="windowFullScreen">
+    <property name="title" translatable="yes">Junqer - Fullscreen</property>
+    <child>
+      <placeholder/>
+    </child>
   </object>
 </interface>

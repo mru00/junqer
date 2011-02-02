@@ -15,9 +15,6 @@ class gstreamerPlayer(Player):
   eofHandler, statusQuery = 0, 0
   paused = False
   
-  #
-  #  Initializes this Mplayer with the specified Pymp.
-  #
   def __init__(self, wid):
     super(gstreamerPlayer,self).__init__()
     
@@ -30,7 +27,6 @@ class gstreamerPlayer(Player):
     bus.enable_sync_message_emission()
     bus.connect("message", self.on_message)
     bus.connect("sync-message::element", self.on_sync_message)
-
 
 
   def play(self, (path,uri)):

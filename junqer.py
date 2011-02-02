@@ -5,6 +5,7 @@
 
 import pygtk, gtk, gio
 pygtk.require("2.0")
+import gconf
 
 
 from player import Player
@@ -25,9 +26,13 @@ class JunqerApp(object):
   BGCOLOR_WATCHED="gray"
   BGCOLOR_SEASON="lightyellow"
   BGCOLOR_SUCCESSOR="green"
+
   TREECOL_BGCOLOR=3
   TREECOL_PLAYCOUNT=2
   TREECOL_TEXT=0
+
+  GCONF_PATH='/apps/junqer'
+  GCONF_BACKEND='/player_backend'
 
   def __init__(self):
     """
@@ -48,6 +53,7 @@ class JunqerApp(object):
       "on_iconviewShow_drag_data_received": self.on_iconviewShow_drag_data_received,
       "on_drawingareaPlayer_key_release_event": self.on_drawingareaPlayer_key_release_event,
       "on_drawingareaPlayer_button_press_event": self.on_drawingareaPlayer_button_press_event,
+      "on_drawingareaPlayer_expose_event": self.on_drawingareaPlayer_expose_event,
       "on_treeviewEpisodes_row_activated": self.on_treeviewEpisodes_row_activated})
 
     self.window = builder.get_object("main_window")
@@ -55,15 +61,14 @@ class JunqerApp(object):
     self.iconviewShow = builder.get_object("iconviewShow")
     self.aboutBox = builder.get_object("aboutdialog1")
     self.playWindow = builder.get_object("drawingareaPlayer")
+    self.playmore = builder.get_object("adjustmentPlayMore")
+    self.fswin = builder.get_object("windowFullScreen")
 
     
     self.currentShow = ''
 
     self.model = load()
 
-    self.playmore = gtk.Adjustment(value=0, lower=-1, upper=100, step_incr=1)
-
-    builder.get_object("spinbuttonPlayMore").set_adjustment(self.playmore)
     
     self.window.connect("destroy", self.on_quit)
 
@@ -78,17 +83,60 @@ class JunqerApp(object):
         gtk.gdk.ACTION_LINK)
     self.update_show_model()
 
-    self.player = gstreamerPlayer(self.playWindow.window.xid)
+
+    cclient = gconf.client_get_default()
+    cclient.add_dir(self.GCONF_PATH, gconf.CLIENT_PRELOAD_NONE)
+    pb= cclient.get_string(self.GCONF_PATH + self.GCONF_BACKEND)
+    print ">> using backend", pb
+
+    if pb and pb == 'gstreamer':
+        self.player = gstreamerPlayer(self.playWindow.window.xid)
+
+    elif pb and pb == 'mplayer':
+        self.player = MPlayer(self.playWindow.window.xid)
+
+    else:
+      self.player = gstreamerPlayer(self.playWindow.window.xid)
+      cclient.set_string(self.GCONF_PATH  + self.GCONF_BACKEND, 'gstreamer')
+
+
     self.player.connect("playback_stopped", self.on_playback_stopped)
 
   def on_drawingareaPlayer_key_release_event(self, w, event):
+    """
+    TODO: shortcut handling should get here
+    """
     print "onkeyrelease", event
 
+
+  def on_drawingareaPlayer_expose_event(self, w, event):
+    """
+    fill the playWindow with black color
+    """
+    x , y, width, height = event.area
+    w.window.draw_rectangle(w.get_style().black_gc,
+        True, x, y, width, height)
+    return False
+
+
   def on_drawingareaPlayer_button_press_event(self, w, event):
+    """
+    a double-click in the player window should switch fullscreen
+    """
+
     if event.type == gtk.gdk._2BUTTON_PRESS:
-      print "fullscreen!"
-      self.window.fullscreen()
-      #self.player.set_fullscreen(True)
+      if self.playWindow.get_parent() == self.fswin:
+        print "unfullscreen"
+        self.playWindow.reparent(self.fs_oparent)
+        self.fswin.hide()
+      else:
+
+        print "fullscreen!"
+        self.fs_oparent = self.playWindow.get_parent()
+        self.fswin.realize()
+        self.fswin.fullscreen()
+        self.playWindow.reparent(self.fswin)
+        self.fswin.show_all()
 
   def suspend(self):
     """
@@ -103,6 +151,8 @@ class JunqerApp(object):
     called from the player when the file is finished playing
     """
 
+
+    self.playWindow.queue_draw()
     value = int(self.playmore.get_value()) 
     if value > 0 or value == -1:
       self.advance()
