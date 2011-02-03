@@ -6,11 +6,15 @@ class Episode:
         self.name = ''
         self.uri = ''
         self.play_count = 0
+        self.tvdb_id = 0
+        self.meta_data = {}
 
 class Season:
     def __init__(self):
         self.number = 0
         self.episodes = []
+        self.tvdb_id = 0
+        self.meta_data = {}
 
 class Show:
     def __init__(self):
@@ -18,6 +22,8 @@ class Show:
         self.path = ''
         self.seasons = []
         self.successor = (0,0)
+        self.tvdb_id = 0
+        self.meta_data = {}
 
     def get(self,path):
         if len(path) == 1:

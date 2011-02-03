@@ -10,7 +10,7 @@ trap '{echo "some error occured, stopping."; exit 1;}' ERR
 SHOW="super show"
 nseasons=4
 nepisodes=10
-nframes=10
+nframes=100
 format="%03d"
 
 trap '{ rm ep???.jpg; }' exit
@@ -36,7 +36,7 @@ gen_image() {
 
 gen_movie() {
     outfile="$1"
-    jpeg2yuv -v 0 -I p -f 8 -j "ep${format}.jpg"| yuv2lav -f a -b 10000 -o "$outfile"
+    jpeg2yuv -v 0 -I p -f 20 -j "ep${format}.jpg"| yuv2lav -f a -b 10000 -o "$outfile"
 }
 
 

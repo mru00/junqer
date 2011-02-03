@@ -6,7 +6,7 @@
 import pygtk, gtk, gio
 pygtk.require("2.0")
 import gconf
-
+import logging
 
 from player import Player
 from mplayer import MPlayer
@@ -16,8 +16,12 @@ from model import *
 from suspend import *
 from persistance import *
 
-# random comment
+
+
+# very necessary -> else random hangups
 gtk.gdk.threads_init()
+logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger("main")
 
 
 class JunqerApp(object):       
@@ -34,6 +38,8 @@ class JunqerApp(object):
   GCONF_PATH='/apps/junqer'
   GCONF_BACKEND='/player_backend'
 
+  DEFAULT_BACKEND='gstreamer'
+
   def __init__(self):
     """
     setup everything
@@ -48,6 +54,9 @@ class JunqerApp(object):
       "on_actionAbout_activate": self.on_actionAbout_activate,
       "on_actionSave_activate": self.on_actionSave_activate,
       "on_actionQuit_activate": self.on_quit,
+      "on_actionPause_activate": self.on_actionPause_activate,
+      "on_actionPlay_activate": self.on_actionPlay_activate,
+      "on_adjustmentPosition_value_changed": self.on_adjustmentPosition_value_changed,
       "on_iconviewShow_item_activated": self.on_show_activated, 
       "on_iconviewShow_selection_changed": self.on_show_selected,
       "on_iconviewShow_drag_data_received": self.on_iconviewShow_drag_data_received,
@@ -63,56 +72,98 @@ class JunqerApp(object):
     self.playWindow = builder.get_object("drawingareaPlayer")
     self.playmore = builder.get_object("adjustmentPlayMore")
     self.fswin = builder.get_object("windowFullScreen")
-
+    self.vboxPlayer = builder.get_object("vboxPlayer")
+    self.toolbarPlayer = builder.get_object("toolbarPlayer")
+    self.buttonPlayPause = builder.get_object("button_play")
     
+    self.builder = builder
+
     self.currentShow = ''
 
     self.model = load()
-
     
     self.window.connect("destroy", self.on_quit)
-
-    TARGET_TYPE_TEXT=80
-    targets = [ ("text/uri-list", 0, TARGET_TYPE_TEXT )]
 
     self.window.show()
     self.setup_treeview()
     self.setup_showview()
 
-    self.iconviewShow.enable_model_drag_dest(targets, 
-        gtk.gdk.ACTION_LINK)
+    TARGET_TYPE_TEXT=80
+    targets = [ ("text/uri-list", 0, TARGET_TYPE_TEXT )]
+    self.iconviewShow.enable_model_drag_dest(targets, gtk.gdk.ACTION_LINK)
     self.update_show_model()
 
+    self.setup_player()
+
+  def focus_player(self):
+    self.playWindow.grab_focus()
+
+
+  def on_adjustmentPosition_value_changed(self,e):
+    log.debug('onposition value changed: %s', str(e))
+    self.player.seek(e.get_value())
+    pass
+
+
+
+  def setup_player(self):
+    """
+    choose the player backend and instantiate it
+    """
+
+
+    self.player_xid = self.playWindow.window.xid
+    log.debug("using xid %d for playWindow", self.player_xid)
 
     cclient = gconf.client_get_default()
     cclient.add_dir(self.GCONF_PATH, gconf.CLIENT_PRELOAD_NONE)
     pb= cclient.get_string(self.GCONF_PATH + self.GCONF_BACKEND)
-    print ">> using backend", pb
+    log.debug("using backend %s", pb)
 
     if pb and pb == 'gstreamer':
-        self.player = gstreamerPlayer(self.playWindow.window.xid)
+        self.player = gstreamerPlayer(self.player_xid)
 
     elif pb and pb == 'mplayer':
-        self.player = MPlayer(self.playWindow.window.xid)
+        self.player = MPlayer(self.player_xid)
 
     else:
       self.player = gstreamerPlayer(self.playWindow.window.xid)
-      cclient.set_string(self.GCONF_PATH  + self.GCONF_BACKEND, 'gstreamer')
+      cclient.set_string(self.GCONF_PATH  + self.GCONF_BACKEND, self.DEFAULT_BACKEND)
+      log.info('no backend configured, using default: %s', self.DEFAULT_BACKEND)
 
 
     self.player.connect("playback_stopped", self.on_playback_stopped)
+    self.player.connect("playback_started", self.on_playback_started)
+    self.player.connect("playback_paused", self.on_playback_paused)
+    self.player.connect("set_position", self.on_playback_set_position)
+
+
+  def on_actionPause_activate(self, _):
+    log.debug('invoking pause')
+    self.player.pause()
+    log.debug('invoked pause')
+
+  def on_actionPlay_activate(self, _):
+    log.debug('invoking play')
+    self.player.play(None)
 
   def on_drawingareaPlayer_key_release_event(self, w, event):
     """
     TODO: shortcut handling should get here
     """
-    print "onkeyrelease", event
+    k = gtk.gdk.keyval_name(event.keyval)
+    log.debug("key pressed: %s", k)
+    if k in ('F11', 'f'):
+      self.toggle_fullscreen()
+    elif k == 'q':
+      self.on_quit(None)
 
 
   def on_drawingareaPlayer_expose_event(self, w, event):
     """
     fill the playWindow with black color
     """
+    log.debug("expose on playerwin")
     x , y, width, height = event.area
     w.window.draw_rectangle(w.get_style().black_gc,
         True, x, y, width, height)
@@ -124,19 +175,47 @@ class JunqerApp(object):
     a double-click in the player window should switch fullscreen
     """
 
-    if event.type == gtk.gdk._2BUTTON_PRESS:
-      if self.playWindow.get_parent() == self.fswin:
-        print "unfullscreen"
-        self.playWindow.reparent(self.fs_oparent)
-        self.fswin.hide()
-      else:
+    self.focus_player()
+    if event.type != gtk.gdk._2BUTTON_PRESS:
+      return False
 
-        print "fullscreen!"
-        self.fs_oparent = self.playWindow.get_parent()
-        self.fswin.realize()
+    self.toggle_fullscreen()
+    return False
+
+  def toggle_fullscreen(self):
+
+    try:
+#      gtk.gdk.threads_enter()
+      if self.vboxPlayer.get_parent() == self.fswin:
+        log.debug("unfullscreen")
+  
+  #      self.fswin.remove(self.vboxPlayer)
+  #      self.fs_oparent.add(self.vboxPlayer)
+  
+        self.vboxPlayer.reparent(self.fs_oparent)
+        self.fswin.hide()
+        self.toolbarPlayer.show()
+        self.playWindow.grab_focus()
+        self.playWindow.show_all()
+      else:
+  
+        log.debug("fullscreen!")
+        self.fs_oparent = self.vboxPlayer.get_parent()
+        self.fswin.show()
+  
+  #      self.fs_oparent.remove(self.vboxPlayer)
+  #      self.fswin.add(self.vboxPlayer)
+  
+        self.vboxPlayer.reparent(self.fswin)
+        self.toolbarPlayer.hide()
         self.fswin.fullscreen()
-        self.playWindow.reparent(self.fswin)
         self.fswin.show_all()
+        self.playWindow.grab_focus()
+
+    finally:
+#      gtk.gdk.threads_leave()
+      pass
+
 
   def suspend(self):
     """
@@ -146,11 +225,50 @@ class JunqerApp(object):
     get_suspender().suspend()
 
 
+
+
+
+
+  def on_playback_set_position(self,player,pos):
+    """
+    when the player reports new position
+    """
+    log.debug("position: %d", pos)
+    adj = self.builder.get_object('adjustmentPosition')
+    try:
+      adj.handler_block_by_func(self.on_adjustmentPosition_value_changed)
+      adj.set_value(pos)
+    finally:
+      adj.handler_unblock_by_func(self.on_adjustmentPosition_value_changed)
+    
+
+
+
+  def on_playback_started(self, player):
+    """
+    """
+    log.debug("playback started!")
+    action = self.builder.get_object('actionPause')
+    action.connect_proxy(self.buttonPlayPause)
+
+
+
+  def on_playback_paused(self, player):
+    """
+    """
+    log.debug("playback paused!")
+    action = self.builder.get_object('actionPlay')
+    action.connect_proxy(self.buttonPlayPause)
+
   def on_playback_stopped(self, player):
     """
     called from the player when the file is finished playing
     """
 
+
+    log.debug("playback stopped!")
+    action = self.builder.get_object('actionPlay')
+    action.connect_proxy(self.buttonPlayPause)
 
     self.playWindow.queue_draw()
     value = int(self.playmore.get_value()) 
@@ -190,7 +308,7 @@ class JunqerApp(object):
     successor = self.model.get((self.currentShow,)).successor
 
     if not successor:
-      print "no more episodes available!"
+      log.error("no more episodes available!")
       return
 
     self.play((self.currentShow,) + successor)
@@ -200,6 +318,8 @@ class JunqerApp(object):
     play the given file
     """
 
+    xid = self.playWindow.window.xid
+    log.debug("using xid %d for playWindow, was %s", xid, self.player_xid)
 
     show_name, season_id, episode_id = path
     mshow = self.model.get((show_name,))
@@ -220,12 +340,9 @@ class JunqerApp(object):
 
     f = gio.File(mepisode.uri) 
 
-    print
-    print "playing file", f.get_path()
+    log.info("playing file %s", f.get_path())
 
-    #self.player.close()
-    self.player.play((f.get_path(),f.get_uri()))
-
+    self.player.play(f)
 
 
   def update_show_model(self):
@@ -297,7 +414,7 @@ class JunqerApp(object):
     successor = self.model.get((show,)).successor
 
     if not successor:
-      print "no more episodes available!"
+      log.info("no more episodes available!")
       return
 
     self.play((show,) + successor)

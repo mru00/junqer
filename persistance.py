@@ -4,7 +4,10 @@
 
 import pickle, os
 from model import *
+import logging
 
+log = logging.getLogger("persistance")
+log.setLevel(logging.DEBUG)
 
 CURRENT_VERSION=1
 SAVEFILENAME=os.path.expanduser("~/.junqer.dat")
@@ -17,13 +20,15 @@ def load():
     try:
         version,model = pickle.load(open(SAVEFILENAME, 'rb'))
         if version != CURRENT_VERSION:
-            print "file saved with version %d, version %d needed" %(version, CURRENT_VERSION)
+            log.error("file saved with version %d, version %d needed" %(version, CURRENT_VERSION))
 
             # TODO: backward-compatibe loading should be implemented here
             return Model()
 
+        else:
+          log.debug("loaded model")
     except:
-      print "failed to load data!"
+      log.error("failed to load data!")
       return Model()
 
     return model
@@ -33,4 +38,9 @@ def save(model):
     saves the model
     """
     tmp = ( CURRENT_VERSION, model )
-    pickle.dump(tmp, open(SAVEFILENAME, 'wb'))
+    try:
+      pickle.dump(tmp, open(SAVEFILENAME, 'wb'))
+      log.debug("saved data")
+    except:
+      log.error("failed to save data to %s", SAVEFILENAME)
+

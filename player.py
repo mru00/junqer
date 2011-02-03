@@ -2,6 +2,15 @@
 
 
 import gobject
+import logging
+from inspect import stack
+
+log = logging.getLogger("player")
+
+PLAYSTATE_NULL = 0
+PLAYSTATE_PLAYING = 1
+PLAYSTATE_PAUSED = 2
+
 
 class Player(gobject.GObject):
   """
@@ -20,30 +29,34 @@ class Player(gobject.GObject):
     """
     plays the given target where target is the url or path to the file
     """
+    log.critical("Player.%s should be overwritten!", stack[0][3])
 
-    pass
+  def get_state(self):
+    """
+    returns one of the PLAYSTATE constants
+    """
+    log.critical("Player.%s should be overwritten!", stack[0][3])
 
   def pause(self):
     """
     pause playback
     """
-    pass
+    log.critical("Player.%s should be overwritten!", stack[0][3])
 
-  def seek(self, amount, mode=0):
+  def seek(self, amount):
     """
-    Seeks the amount using the specified mode.  See mplayer docs.
+    seeks to the specified position in percent
     """
-    #self.pymp.mplayer.cmd("seek " + str(amount) + " " + str(mode))
-    #self.pymp.mplayer.queryStatus()
-    pass
+    log.critical("Player.%s should be overwritten!", stack[0][3])
 
-  def set_fullscreen(self, fs):
-    pass
 
   
 
 gobject.type_register(Player)
 gobject.signal_new("playback_stopped", Player, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
-gobject.signal_new("set_position", Player, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
+gobject.signal_new("playback_paused", Player, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
+gobject.signal_new("playback_started", Player, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
+
+gobject.signal_new("set_position", Player, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_INT,))
 
 

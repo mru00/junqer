@@ -1,0 +1,15 @@
+// state diagram for the playing states
+//
+
+digraph play {
+
+    NULL    [label="NULL\n/emit playback_stopped"];
+    PLAYING [label="PLAYING\n/emit playback_started"];
+    PAUSED  [label="PAUSED\n/emit playback_paused"];
+
+    NULL -> PLAYING [label="play(target)"];
+    PLAYING -> PAUSED [label="pause()"];
+    PAUSED -> PLAYING [label="play()"];
+    PLAYING -> NULL [label="finished()"];
+    PLAYING -> PLAYING [label="play(target)"];
+}
