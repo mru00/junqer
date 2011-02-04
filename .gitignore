@@ -1,0 +1,7 @@
+*.pyc
+pymp/
+totem/
+test/
+*.swp
+.unison*
+super\ show/
