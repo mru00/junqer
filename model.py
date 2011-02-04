@@ -47,12 +47,12 @@ class Model(object):
         else:
             return self.shows[path[0]]
 
-    def dump_model(self):
+    def dump(self):
         """
         dump the model to the console
         """
 
-        for show in self.shows:
+        for show in self.shows.values():
             print "[show]", show.name
             for season in show.seasons:
                 print "  [season]", season.name

@@ -15,13 +15,76 @@ from showimporter import GnomeShowImporter
 from model import *
 from suspend import *
 from persistance import *
+import thetvdbapi
 
 
+tvdb_key = "BFE6162BAD99831B"
 
 # very necessary -> else random hangups
 gtk.gdk.threads_init()
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger("main")
+
+
+class DialogBase(object):
+  def __init__(self, gladepath):
+
+    builder = gtk.Builder()
+    builder.add_from_file("glade/%s.glade" % gladepath)
+    self.builder = builder
+    self.dialog = builder.get_object(gladepath)
+    self.run = self.dialog.run
+    self.destroy = self.dialog.destroy
+
+
+  def connect(self, signals):
+    self.builder.connect_signals(signals)
+
+  def __getitem__(self, index):
+    return self.builder.get_object(index)
+
+
+
+
+class DialogSearchTvdb(DialogBase):
+  def __init__(self):
+    DialogBase.__init__(self, "dialogSearchTvdb")
+
+    self.connect({
+      "on_actionSearchTvdb_activate": self.on_actionSearchTvdb_activate})
+
+    t = self['treeviewTvdbResults']
+
+    t.append_column(gtk.TreeViewColumn('Id', gtk.CellRendererText(), text=0))
+    t.append_column(gtk.TreeViewColumn('Name', gtk.CellRendererText(), text=1))
+
+    self.model = self['liststoreTvdbResults']
+    self.tvdb = thetvdbapi.TheTVDB(tvdb_key)
+
+
+  def on_actionSearchTvdb_activate(self, _):
+    self.model.clear()
+  
+    shows = self.tvdb.get_matching_shows(self['entrySearchTvdb'].get_text())
+    for id, name in shows:
+      print id, name, type(id), type(name)
+      self.model.append( (id,name))
+
+
+
+class DialogEditShow(DialogBase):
+  def __init__(self):
+    DialogBase.__init__(self, "dialogEditShow")
+    self.connect({
+      "on_actionDialogSearchTvdb_activate": self.on_actionDialogSearchTvdb_activate})
+
+  def on_actionDialogSearchTvdb_activate(self, _):
+    dlg = DialogSearchTvdb()
+    if dlg.run() == gtk.RESPONSE_OK:
+      print "ok"
+    dlg.destroy()
+
+
 
 
 class JunqerApp(object):       
@@ -31,8 +94,9 @@ class JunqerApp(object):
   BGCOLOR_SEASON="lightyellow"
   BGCOLOR_SUCCESSOR="green"
 
-  TREECOL_BGCOLOR=3
-  TREECOL_PLAYCOUNT=2
+  TREECOL_URI=3
+  TREECOL_BGCOLOR=2
+  TREECOL_PLAYCOUNT=1
   TREECOL_TEXT=0
 
   GCONF_PATH='/apps/junqer'
@@ -47,7 +111,7 @@ class JunqerApp(object):
 
 
     builder = gtk.Builder()
-    builder.add_from_file("junqer.glade")
+    builder.add_from_file("glade/junqer.glade")
 
     builder.connect_signals({
       "on_window_destroy" : self.on_quit,
@@ -56,14 +120,17 @@ class JunqerApp(object):
       "on_actionQuit_activate": self.on_quit,
       "on_actionPause_activate": self.on_actionPause_activate,
       "on_actionPlay_activate": self.on_actionPlay_activate,
+      "on_actionEditShow_activate": self.on_actionEditShow_activate,
       "on_adjustmentPosition_value_changed": self.on_adjustmentPosition_value_changed,
       "on_iconviewShow_item_activated": self.on_show_activated, 
       "on_iconviewShow_selection_changed": self.on_show_selected,
       "on_iconviewShow_drag_data_received": self.on_iconviewShow_drag_data_received,
+      "on_iconviewShow_button_press_event": self.on_iconviewShow_button_press_event,
       "on_drawingareaPlayer_key_release_event": self.on_drawingareaPlayer_key_release_event,
       "on_drawingareaPlayer_button_press_event": self.on_drawingareaPlayer_button_press_event,
       "on_drawingareaPlayer_expose_event": self.on_drawingareaPlayer_expose_event,
-      "on_treeviewEpisodes_row_activated": self.on_treeviewEpisodes_row_activated})
+      "on_treeviewEpisodes_row_activated": self.on_treeviewEpisodes_row_activated,
+      "on_treeviewEpisodes_button_press_event": self.on_treeviewEpisodes_button_press_event})
 
     self.window = builder.get_object("main_window")
     self.treeviewEpisodes = builder.get_object("treeviewEpisodes")
@@ -78,22 +145,29 @@ class JunqerApp(object):
     
     self.builder = builder
 
+    self.iconviewShow.set_text_column(0)
+    self.iconviewShow.set_pixbuf_column(1)
+
     self.currentShow = ''
 
     self.model = load()
+    self.model.dump()
     
     self.window.connect("destroy", self.on_quit)
 
     self.window.show()
     self.setup_treeview()
-    self.setup_showview()
 
     TARGET_TYPE_TEXT=80
     targets = [ ("text/uri-list", 0, TARGET_TYPE_TEXT )]
     self.iconviewShow.enable_model_drag_dest(targets, gtk.gdk.ACTION_LINK)
+
+
     self.update_show_model()
 
     self.setup_player()
+    self.tvdb = thetvdbapi.TheTVDB(tvdb_key)
+
 
   def focus_player(self):
     self.playWindow.grab_focus()
@@ -102,9 +176,13 @@ class JunqerApp(object):
   def on_adjustmentPosition_value_changed(self,e):
     log.debug('onposition value changed: %s', str(e))
     self.player.seek(e.get_value())
-    pass
 
 
+
+  def on_actionEditShow_activate(self, _):
+    dlg = DialogEditShow()
+    dlg.run()
+    dlg.destroy()
 
   def setup_player(self):
     """
@@ -141,7 +219,6 @@ class JunqerApp(object):
   def on_actionPause_activate(self, _):
     log.debug('invoking pause')
     self.player.pause()
-    log.debug('invoked pause')
 
   def on_actionPlay_activate(self, _):
     log.debug('invoking play')
@@ -158,6 +235,30 @@ class JunqerApp(object):
     elif k == 'q':
       self.on_quit(None)
 
+  def on_treeviewEpisodes_button_press_event(self, w, event):
+    if event.button == 3:
+      x = int(event.x)
+      y = int(event.y)
+      time = event.time
+      path = w.get_path_at_pos(x, y)
+      if path:
+        path, col, cellx, celly = path
+        w.grab_focus()
+        w.set_cursor(path, col, 0)
+        self['menuSeries'].popup(None, None, None, event.button, time)
+      return True
+
+  def on_iconviewShow_button_press_event(self, w, event):
+    if event.button == 3:
+      x = int(event.x)
+      y = int(event.y)
+      time = event.time
+      pathinfo = w.get_path_at_pos(x, y)
+      if pathinfo:
+        w.grab_focus()
+        w.set_cursor(pathinfo, None, 0)
+        self['menuSeries'].popup(None, None, None, event.button, time)
+      return True
 
   def on_drawingareaPlayer_expose_event(self, w, event):
     """
@@ -234,7 +335,7 @@ class JunqerApp(object):
     when the player reports new position
     """
     log.debug("position: %d", pos)
-    adj = self.builder.get_object('adjustmentPosition')
+    adj = self['adjustmentPosition']
     try:
       adj.handler_block_by_func(self.on_adjustmentPosition_value_changed)
       adj.set_value(pos)
@@ -248,8 +349,7 @@ class JunqerApp(object):
     """
     """
     log.debug("playback started!")
-    action = self.builder.get_object('actionPause')
-    action.connect_proxy(self.buttonPlayPause)
+    self['actionPause'].connect_proxy(self.buttonPlayPause)
 
 
 
@@ -257,18 +357,15 @@ class JunqerApp(object):
     """
     """
     log.debug("playback paused!")
-    action = self.builder.get_object('actionPlay')
-    action.connect_proxy(self.buttonPlayPause)
+    self['actionPlay'].connect_proxy(self.buttonPlayPause)
 
   def on_playback_stopped(self, player):
     """
     called from the player when the file is finished playing
     """
 
-
     log.debug("playback stopped!")
-    action = self.builder.get_object('actionPlay')
-    action.connect_proxy(self.buttonPlayPause)
+    self['actionPlay'].connect_proxy(self.buttonPlayPause)
 
     self.playWindow.queue_draw()
     value = int(self.playmore.get_value()) 
@@ -351,14 +448,15 @@ class JunqerApp(object):
     """
 
     showModel = self.iconviewShow.get_model()
-    showModel.clear()
+    print showModel
+#    showModel.clear()
 
     pixbuf = self.iconviewShow.render_icon(gtk.STOCK_NEW, 
                                            size=gtk.ICON_SIZE_BUTTON, 
                                            detail=None)
 
     for name in self.model.shows:
-      showModel.append( (name, pixbuf)) 
+      showModel.append( (name, pixbuf, 'tooltip')) 
 
 
   def on_treeviewEpisodes_row_activated(self, treeview, path, view_column):
@@ -391,6 +489,9 @@ class JunqerApp(object):
 
     return show
        
+
+  def __getitem__(self, index):
+    return self.builder.get_object(index)
 
 
   def on_iconviewShow_drag_data_received(self, widget, context, x, y, 
@@ -435,15 +536,14 @@ class JunqerApp(object):
       season_iter = episodeModel.append(None, 
                                         (season.name,
                                          0, 
-                                         '', 
-                                         self.BGCOLOR_SEASON))
+                                         self.BGCOLOR_SEASON, ''))
       
       eid = 0
       for episode in season.episodes:
         episode_iter = episodeModel.append(season_iter, 
                                            (episode.name, 
                                             episode.play_count, 
-                                            episode.uri, ''))
+                                            '', episode.uri))
 
         self.update_tree_row((show_name, sid, eid))
         eid += 1
@@ -503,30 +603,20 @@ class JunqerApp(object):
 
   def setup_treeview(self):
 
-    model = gtk.TreeStore(str, int, str, str)
-    self.treeviewEpisodes.set_model(model)
-
-    column = gtk.TreeViewColumn('Show', 
+    c1 = gtk.TreeViewColumn('Show', 
                                 gtk.CellRendererText(), 
                                 text=self.TREECOL_TEXT, 
                                 background=self.TREECOL_BGCOLOR)
-    self.treeviewEpisodes.append_column(column)
     
-    column = gtk.TreeViewColumn('Times watched', 
+    c2 = gtk.TreeViewColumn('Times watched', 
                                 gtk.CellRendererText(), 
                                 text=self.TREECOL_PLAYCOUNT, 
                                 background=self.TREECOL_BGCOLOR)
 
-    self.treeviewEpisodes.append_column(column)
+    self.treeviewEpisodes.append_column(c1)
+    self.treeviewEpisodes.append_column(c2)
 
 
-  def setup_showview(self):
-    model = gtk.ListStore(str, gtk.gdk.Pixbuf)
-
-    self.iconviewShow.set_model(model)
-    self.iconviewShow.set_text_column(0)
-    self.iconviewShow.set_pixbuf_column(1)
-    self.iconviewShow.set_reorderable(True)
 
   def on_actionAbout_activate(self, _):
     self.aboutBox.run()
