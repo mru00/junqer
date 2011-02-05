@@ -38,6 +38,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="invisible_char">•</property>
+                    <property name="text" translatable="yes">sopranos</property>
                   </object>
                   <packing>
                     <property name="position">1</property>
@@ -78,6 +79,7 @@
                     <property name="can_focus">True</property>
                     <property name="model">liststoreTvdbResults</property>
                     <property name="search_column">0</property>
+                    <signal name="cursor_changed" handler="on_treeviewTvdbResults_cursor_changed"/>
                   </object>
                 </child>
               </object>
@@ -109,7 +111,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button5">
+              <object class="GtkButton" id="buttonOK">
                 <property name="label">gtk-ok</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -133,7 +135,7 @@
     </child>
     <action-widgets>
       <action-widget response="-6">button6</action-widget>
-      <action-widget response="-5">button5</action-widget>
+      <action-widget response="-5">buttonOK</action-widget>
     </action-widgets>
   </object>
   <object class="GtkAction" id="actionSearchTvdb">

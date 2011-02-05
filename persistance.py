@@ -10,8 +10,13 @@ log = logging.getLogger("persistance")
 log.setLevel(logging.DEBUG)
 
 CURRENT_VERSION=1
-SAVEFILENAME=os.path.expanduser("~/.junqer.dat")
+DATADIR=os.path.expanduser("~/.junqer/")
+SAVEFILENAME=os.path.join(DATADIR, 'database')
 
+try:
+  os.mkdir(DATADIR)
+except OSError, e:
+  log.info(e)
 
 def load():
     """

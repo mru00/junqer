@@ -3,10 +3,17 @@
 # junqer: watching series like a pro!
 # mru, 2011-01
 
+
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger("main")
+
+
+
 import pygtk, gtk, gio
 pygtk.require("2.0")
 import gconf
-import logging
 
 from player import Player
 from mplayer import MPlayer
@@ -16,73 +23,14 @@ from model import *
 from suspend import *
 from persistance import *
 import thetvdbapi
+from dialogs import *
 
 
 tvdb_key = "BFE6162BAD99831B"
 
 # very necessary -> else random hangups
 gtk.gdk.threads_init()
-logging.basicConfig(level=logging.DEBUG)
-log = logging.getLogger("main")
 
-
-class DialogBase(object):
-  def __init__(self, gladepath):
-
-    builder = gtk.Builder()
-    builder.add_from_file("glade/%s.glade" % gladepath)
-    self.builder = builder
-    self.dialog = builder.get_object(gladepath)
-    self.run = self.dialog.run
-    self.destroy = self.dialog.destroy
-
-
-  def connect(self, signals):
-    self.builder.connect_signals(signals)
-
-  def __getitem__(self, index):
-    return self.builder.get_object(index)
-
-
-
-
-class DialogSearchTvdb(DialogBase):
-  def __init__(self):
-    DialogBase.__init__(self, "dialogSearchTvdb")
-
-    self.connect({
-      "on_actionSearchTvdb_activate": self.on_actionSearchTvdb_activate})
-
-    t = self['treeviewTvdbResults']
-
-    t.append_column(gtk.TreeViewColumn('Id', gtk.CellRendererText(), text=0))
-    t.append_column(gtk.TreeViewColumn('Name', gtk.CellRendererText(), text=1))
-
-    self.model = self['liststoreTvdbResults']
-    self.tvdb = thetvdbapi.TheTVDB(tvdb_key)
-
-
-  def on_actionSearchTvdb_activate(self, _):
-    self.model.clear()
-  
-    shows = self.tvdb.get_matching_shows(self['entrySearchTvdb'].get_text())
-    for id, name in shows:
-      print id, name, type(id), type(name)
-      self.model.append( (id,name))
-
-
-
-class DialogEditShow(DialogBase):
-  def __init__(self):
-    DialogBase.__init__(self, "dialogEditShow")
-    self.connect({
-      "on_actionDialogSearchTvdb_activate": self.on_actionDialogSearchTvdb_activate})
-
-  def on_actionDialogSearchTvdb_activate(self, _):
-    dlg = DialogSearchTvdb()
-    if dlg.run() == gtk.RESPONSE_OK:
-      print "ok"
-    dlg.destroy()
 
 
 
@@ -135,7 +83,6 @@ class JunqerApp(object):
     self.window = builder.get_object("main_window")
     self.treeviewEpisodes = builder.get_object("treeviewEpisodes")
     self.iconviewShow = builder.get_object("iconviewShow")
-    self.aboutBox = builder.get_object("aboutdialog1")
     self.playWindow = builder.get_object("drawingareaPlayer")
     self.playmore = builder.get_object("adjustmentPlayMore")
     self.fswin = builder.get_object("windowFullScreen")
@@ -145,8 +92,8 @@ class JunqerApp(object):
     
     self.builder = builder
 
-    self.iconviewShow.set_text_column(0)
-    self.iconviewShow.set_pixbuf_column(1)
+    self.iconviewShow.set_text_column(1)
+    self.iconviewShow.set_pixbuf_column(2)
 
     self.currentShow = ''
 
@@ -180,9 +127,19 @@ class JunqerApp(object):
 
 
   def on_actionEditShow_activate(self, _):
-    dlg = DialogEditShow()
-    dlg.run()
-    dlg.destroy()
+    showname = self.get_selected_show_name()
+    showobj = self.model.get((showname,))
+    dlg = DialogEditShow(showobj.meta)
+    try:
+      if dlg.run() == gtk.RESPONSE_OK:
+        showobj.meta = dlg.meta
+        showobj.name = dlg.meta['name']
+      
+
+
+    finally:
+      dlg.destroy()
+      self.update_show_model()
 
   def setup_player(self):
     """
@@ -249,6 +206,9 @@ class JunqerApp(object):
       return True
 
   def on_iconviewShow_button_press_event(self, w, event):
+    """
+    show context menu on show
+    """
     if event.button == 3:
       x = int(event.x)
       y = int(event.y)
@@ -256,6 +216,7 @@ class JunqerApp(object):
       pathinfo = w.get_path_at_pos(x, y)
       if pathinfo:
         w.grab_focus()
+        w.select_path(pathinfo)
         w.set_cursor(pathinfo, None, 0)
         self['menuSeries'].popup(None, None, None, event.button, time)
       return True
@@ -448,15 +409,17 @@ class JunqerApp(object):
     """
 
     showModel = self.iconviewShow.get_model()
-    print showModel
-#    showModel.clear()
+    showModel.clear()
 
     pixbuf = self.iconviewShow.render_icon(gtk.STOCK_NEW, 
                                            size=gtk.ICON_SIZE_BUTTON, 
                                            detail=None)
 
-    for name in self.model.shows:
-      showModel.append( (name, pixbuf, 'tooltip')) 
+    for name, show in self.model.shows.items():
+      desc = show.meta.get('overview', '')
+      if 'banner' in show.meta and show.meta['banner']:
+        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(show.meta['banner'], 200, 200)
+      showModel.append( (name, show.name, pixbuf, desc)) 
 
 
   def on_treeviewEpisodes_row_activated(self, treeview, path, view_column):
@@ -619,8 +582,9 @@ class JunqerApp(object):
 
 
   def on_actionAbout_activate(self, _):
-    self.aboutBox.run()
-    self.aboutBox.destroy()
+    dlg = DialogBase('dialogAbout')
+    dlg.run()
+    dlg.destroy()
 
 
 if __name__ == "__main__":

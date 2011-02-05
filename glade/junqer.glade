@@ -2,16 +2,6 @@
 <interface>
   <requires lib="gtk+" version="2.16"/>
   <!-- interface-naming-policy project-wide -->
-  <object class="GtkListStore" id="liststoreSeries">
-    <columns>
-      <!-- column-name name -->
-      <column type="gchararray"/>
-      <!-- column-name icon -->
-      <column type="GdkPixbuf"/>
-      <!-- column-name tooltip -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
   <object class="GtkTreeStore" id="treestorEpisodes">
     <columns>
       <!-- column-name Episode -->
@@ -24,10 +14,23 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="liststoreSeries">
+    <columns>
+      <!-- column-name key -->
+      <column type="gchararray"/>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name icon -->
+      <column type="GdkPixbuf"/>
+      <!-- column-name tooltip -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="main_window">
     <property name="title" translatable="yes">Junqer</property>
     <property name="default_width">523</property>
     <property name="default_height">589</property>
+    <property name="icon_name">applications-multimedia</property>
     <child>
       <object class="GtkVBox" id="vbox1">
         <property name="visible">True</property>
@@ -281,7 +284,7 @@
         <child>
           <object class="GtkHPaned" id="hpaned1">
             <property name="visible">True</property>
-            <property name="position">222</property>
+            <property name="position">245</property>
             <property name="position_set">True</property>
             <child>
               <object class="GtkVPaned" id="vpaned1">
@@ -297,10 +300,11 @@
                     <child>
                       <object class="GtkIconView" id="iconviewShow">
                         <property name="visible">True</property>
+                        <property name="has_tooltip">True</property>
                         <property name="model">liststoreSeries</property>
-                        <property name="columns">2</property>
+                        <property name="columns">1</property>
                         <property name="reorderable">True</property>
-                        <property name="tooltip_column">2</property>
+                        <property name="tooltip_column">3</property>
                         <signal name="button_press_event" handler="on_iconviewShow_button_press_event"/>
                         <signal name="item_activated" handler="on_iconviewShow_item_activated"/>
                         <signal name="selection_changed" handler="on_iconviewShow_selection_changed"/>
@@ -458,37 +462,6 @@ audio-volume-medium</property>
     <property name="stock_id">gtk-quit</property>
     <signal name="activate" handler="on_actionQuit_activate"/>
   </object>
-  <object class="GtkAboutDialog" id="aboutdialog1">
-    <property name="border_width">5</property>
-    <property name="title" translatable="yes">About Junqer</property>
-    <property name="type_hint">normal</property>
-    <property name="program_name">Junqer</property>
-    <property name="version">0.1</property>
-    <property name="copyright" translatable="yes">mru	</property>
-    <property name="comments" translatable="yes">show junking make easy</property>
-    <property name="website">http://sisyphus.teil.cc/~mru</property>
-    <property name="authors">mru &lt;mru@sisyphus.teil.cc&gt;</property>
-    <child internal-child="vbox">
-      <object class="GtkVBox" id="dialog-vbox1">
-        <property name="visible">True</property>
-        <property name="spacing">2</property>
-        <child>
-          <placeholder/>
-        </child>
-        <child internal-child="action_area">
-          <object class="GtkHButtonBox" id="dialog-action_area1">
-            <property name="visible">True</property>
-            <property name="layout_style">end</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="pack_type">end</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-  </object>
   <object class="GtkAction" id="actionAbout">
     <property name="label">About</property>
     <property name="short_label">About</property>
@@ -558,13 +531,6 @@ audio-volume-medium</property>
     <property name="visible">True</property>
     <property name="ubuntu_local">True</property>
     <child>
-      <object class="GtkMenuItem" id="menuitem1">
-        <property name="visible">True</property>
-        <property name="label" translatable="yes">menuitem1</property>
-        <property name="use_underline">True</property>
-      </object>
-    </child>
-    <child>
       <object class="GtkImageMenuItem" id="menuitemEditShow">
         <property name="visible">True</property>
         <property name="related_action">actionEditShow</property>
@@ -577,4 +543,7 @@ audio-volume-medium</property>
   <object class="GtkEntryCompletion" id="entrycompletionSeries"/>
   <object class="GtkTextBuffer" id="textbufferSeries"/>
   <object class="GtkActionGroup" id="actiongroupTvdb"/>
+  <object class="GtkAction" id="actionUpdateFiles">
+    <property name="label">Update from Filesystem</property>
+  </object>
 </interface>

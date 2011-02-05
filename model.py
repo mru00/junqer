@@ -23,7 +23,7 @@ class Show:
         self.seasons = []
         self.successor = (0,0)
         self.tvdb_id = 0
-        self.meta_data = {}
+        self.meta = {}
 
     def get(self,path):
         if len(path) == 1:
