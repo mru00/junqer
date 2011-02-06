@@ -10,6 +10,7 @@ logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger("main")
 
 
+tvdb_key = "BFE6162BAD99831B"
 
 import pygtk, gtk, gio
 pygtk.require("2.0")
@@ -26,7 +27,6 @@ import thetvdbapi
 from dialogs import *
 
 
-tvdb_key = "BFE6162BAD99831B"
 
 # very necessary -> else random hangups
 gtk.gdk.threads_init()

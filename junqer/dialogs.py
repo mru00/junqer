@@ -19,7 +19,7 @@ from persistance import DATADIR
 import urllib2
 import os
 
-from junqer import tvdb_key
+from junqerapp import tvdb_key
 
 log = logging.getLogger("dialogs")
 
