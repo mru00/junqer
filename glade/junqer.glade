@@ -427,7 +427,6 @@
                         <property name="visible">True</property>
                         <child>
                           <object class="GtkVolumeButton" id="volumebutton1">
-                            <property name="label" translatable="yes">button</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -440,6 +439,9 @@
 audio-volume-high
 audio-volume-low
 audio-volume-medium</property>
+                            <child>
+                              <placeholder/>
+                            </child>
                           </object>
                         </child>
                       </object>

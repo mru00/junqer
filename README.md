@@ -12,6 +12,12 @@ Abstract
 Junqer is a simple python / pygtk application that targets a
 series-junkie like myself.
 
+It is basically a movie player with extended playlist support. 
+A playlist models a tv series with seasons and episodes.
+
+Playcount and current position are stored to ease the "play one more" - process.
+
+
 
 Usage
 -----

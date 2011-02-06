@@ -99,7 +99,7 @@ class JunqerApp(object):
     self.currentShow = ''
 
     self.model = load()
-    self.model.dump()
+    #self.model.dump()
     
     self.window.connect("destroy", self.on_quit)
 

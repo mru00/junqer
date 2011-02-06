@@ -16,7 +16,10 @@ SAVEFILENAME=os.path.join(DATADIR, 'database')
 try:
   os.mkdir(DATADIR)
 except OSError, e:
-  log.info(e)
+  # errno == 17: file exists
+  if e.errno != 17:
+    log.info(e)
+    raise
 
 def load():
     """
