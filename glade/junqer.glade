@@ -84,6 +84,18 @@
                     <property name="visible">True</property>
                     <property name="ubuntu_local">True</property>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem1">
+                        <property name="visible">True</property>
+                        <property name="related_action">actionEditShow</property>
+                        <property name="use_action_appearance">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="menuitem2">
+                        <property name="visible">True</property>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkImageMenuItem" id="menu_item_cut">
                         <property name="label">gtk-cut</property>
                         <property name="visible">True</property>
