@@ -24,6 +24,34 @@ class gstreamerPlayer(player.Player):
     self.wid = wid
 
     self.player = gst.element_factory_make("playbin2", "player")
+    self.asink = gst.element_factory_make("autoaudiosink", "audio-sink")
+    self.vsink = gst.element_factory_make("gconfvideosink", "video-sink")
+
+    # self.asink.set_property("profile", 1)
+    self.asink.set_state(gst.STATE_NULL)
+    
+    self.audio_capsfilter = gst.element_factory_make ("capsfilter", "audiofilter")
+    bin = gst.Bin("audiosinkbin")
+    bin.add (self.audio_capsfilter, self.asink)
+
+    self.audio_capsfilter.link_pads("src", self.asink, "sink")
+    
+    pad = self.audio_capsfilter.get_static_pad("sink")
+    bin.add_pad( gst.GhostPad("sink", pad))
+    
+    # TODO: two-channel output
+    #pad = self.audio_capsfilter.get_static_pad("src")
+    #caps = pad.get_peer().get_caps()
+
+
+    self.asink = bin
+
+
+
+
+    self.player.set_property("video-sink", self.vsink)
+    self.player.set_property("audio-sink", self.asink)
+    self.player.set_property("connection-speed", 5600)
 
     bus = self.player.get_bus()
     bus.add_signal_watch()
@@ -76,11 +104,18 @@ class gstreamerPlayer(player.Player):
     plays the target (=uri) if given, else continues from play
     """
 
-    log.debug("invoked play, target= %s", target)
+    log.debug("invoked play, target= %s", str(target))
+
+
+    # TODO: mount volume if necessary!!!
+
+    #g_file_mount_enclosing_volume (target, G_MOUNT_MOUNT_NONE,$
+    #     mount_op, bvw->priv->mount_cancellable, mount_cb, );$
 
     if target:
       self.player.set_state(gst.STATE_NULL)
       self.player.set_property("uri", target.get_uri())
+      self.player.set_property("connection-speed", 56)
 
     self.player.set_state(gst.STATE_PLAYING)
     self.emit("playback_started")
@@ -101,7 +136,9 @@ class gstreamerPlayer(player.Player):
       return
     message_name = message.structure.get_name()
     log.debug("received sync message: %s", message)
-    if message_name == "prepare-xwindow-id":
+    if message_name == "not-mounted":
+      log.error("location not mounted!")
+    elif message_name == "prepare-xwindow-id":
       imagesink = message.src
       imagesink.set_property("force-aspect-ratio", True)
       try:

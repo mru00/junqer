@@ -69,6 +69,7 @@ class JunqerApp(object):
       "on_actionPause_activate": self.on_actionPause_activate,
       "on_actionPlay_activate": self.on_actionPlay_activate,
       "on_actionEditShow_activate": self.on_actionEditShow_activate,
+      "on_actionRemoveShow_activate": self.on_actionRemoveShow_activate,
       "on_adjustmentPosition_value_changed": self.on_adjustmentPosition_value_changed,
       "on_iconviewShow_item_activated": self.on_show_activated, 
       "on_iconviewShow_selection_changed": self.on_show_selected,
@@ -124,10 +125,16 @@ class JunqerApp(object):
     log.debug('onposition value changed: %s', str(e))
     self.player.seek(e.get_value())
 
-
+  def on_actionRemoveShow_activate(self, _):
+    showname = self.get_selected_show_name()
+    if not showname: return
+    del self.model.shows[showname]
+    self.update_show_model()
+      
 
   def on_actionEditShow_activate(self, _):
     showname = self.get_selected_show_name()
+    if not showname: return
     showobj = self.model.get((showname,))
     dlg = DialogEditShow(showobj.meta)
     try:
@@ -295,7 +302,7 @@ class JunqerApp(object):
     """
     when the player reports new position
     """
-    log.debug("position: %d", pos)
+#    log.debug("position: %d", pos)
     adj = self['adjustmentPosition']
     try:
       adj.handler_block_by_func(self.on_adjustmentPosition_value_changed)
@@ -411,7 +418,7 @@ class JunqerApp(object):
     showModel = self.iconviewShow.get_model()
     showModel.clear()
 
-    pixbuf = self.iconviewShow.render_icon(gtk.STOCK_NEW, 
+    pixbuf_notfound = self.iconviewShow.render_icon(gtk.STOCK_NEW, 
                                            size=gtk.ICON_SIZE_BUTTON, 
                                            detail=None)
 
@@ -419,6 +426,8 @@ class JunqerApp(object):
       desc = show.meta.get('overview', '')
       if 'banner' in show.meta and show.meta['banner']:
         pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(show.meta['banner'], 200, 200)
+      else:
+        pixbuf = pixbuf_notfound
       showModel.append( (name, show.name, pixbuf, desc)) 
 
 

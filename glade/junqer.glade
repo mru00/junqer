@@ -91,6 +91,13 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem4">
+                        <property name="visible">True</property>
+                        <property name="related_action">actionRemoveShow</property>
+                        <property name="use_action_appearance">True</property>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkSeparatorMenuItem" id="menuitem2">
                         <property name="visible">True</property>
                       </object>
@@ -301,7 +308,7 @@
             <child>
               <object class="GtkVPaned" id="vpaned1">
                 <property name="visible">True</property>
-                <property name="position">112</property>
+                <property name="position">250</property>
                 <property name="position_set">True</property>
                 <child>
                   <object class="GtkScrolledWindow" id="scrolledwindow2">
@@ -315,8 +322,11 @@
                         <property name="has_tooltip">True</property>
                         <property name="model">liststoreSeries</property>
                         <property name="columns">1</property>
+                        <property name="row_spacing">0</property>
+                        <property name="margin">3</property>
                         <property name="reorderable">True</property>
                         <property name="tooltip_column">3</property>
+                        <property name="item_padding">2</property>
                         <signal name="button_press_event" handler="on_iconviewShow_button_press_event"/>
                         <signal name="item_activated" handler="on_iconviewShow_item_activated"/>
                         <signal name="selection_changed" handler="on_iconviewShow_selection_changed"/>
@@ -551,11 +561,23 @@ audio-volume-medium</property>
         <property name="use_stock">True</property>
       </object>
     </child>
+    <child>
+      <object class="GtkMenuItem" id="menuitem3">
+        <property name="visible">True</property>
+        <property name="related_action">actionRemoveShow</property>
+        <property name="use_action_appearance">True</property>
+      </object>
+    </child>
   </object>
   <object class="GtkEntryCompletion" id="entrycompletionSeries"/>
   <object class="GtkTextBuffer" id="textbufferSeries"/>
   <object class="GtkActionGroup" id="actiongroupTvdb"/>
   <object class="GtkAction" id="actionUpdateFiles">
     <property name="label">Update from Filesystem</property>
+  </object>
+  <object class="GtkAction" id="actionRemoveShow">
+    <property name="label">Remove Show</property>
+    <property name="tooltip">Remove Show from database</property>
+    <signal name="activate" handler="on_actionRemoveShow_activate"/>
   </object>
 </interface>

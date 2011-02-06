@@ -74,7 +74,6 @@ TODO
     - currently gstreamer and mplayer in development
   * always on top
   * collapsed gui
-  * gui upgrades 
   * icon design
   * smarter "successor" / currently playing markup
   * save time when an episode stopped -> restart/resume half-played episodes
