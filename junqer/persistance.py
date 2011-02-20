@@ -3,7 +3,7 @@
 
 
 import pickle, os
-from model import *
+from .model import *
 import logging
 
 log = logging.getLogger("persistance")
@@ -35,8 +35,8 @@ def load():
 
         else:
           log.debug("loaded model")
-    except:
-      log.error("failed to load data!")
+    except Exception, e:
+      log.error("failed to load data: %s", str(e))
       return Model()
 
     return model

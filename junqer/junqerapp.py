@@ -333,10 +333,14 @@ class JunqerApp(object):
     """
 
     log.debug("playback stopped!")
+    save(self.model)
     self['actionPlay'].connect_proxy(self.buttonPlayPause)
 
     self.playWindow.queue_draw()
     value = int(self.playmore.get_value()) 
+    if value == 0 and self['checkbuttonStandby'].get_active():
+      self.suspend()
+
     if value > 0 or value == -1:
       self.advance()
 
@@ -408,7 +412,7 @@ class JunqerApp(object):
     log.info("playing file %s", f.get_path())
 
     self.player.play(f)
-
+    save(self.model)
 
   def update_show_model(self):
     """

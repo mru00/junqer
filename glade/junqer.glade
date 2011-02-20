@@ -439,9 +439,7 @@
 audio-volume-high
 audio-volume-low
 audio-volume-medium</property>
-                            <child>
-                              <placeholder/>
-                            </child>
+                            <signal name="value_changed" handler="on_volumebutton1_value_changed"/>
                           </object>
                         </child>
                       </object>

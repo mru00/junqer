@@ -144,7 +144,7 @@ class DialogSelectBanner(DialogBase):
 class DialogSearchTvdb(DialogBase):
   """
   """
-  def __init__(self, initial_title = ''):
+  def __init__(self, shows, initial_title):
     DialogBase.__init__(self, "dialogSearchTvdb")
 
     self.connect({
@@ -164,6 +164,8 @@ class DialogSearchTvdb(DialogBase):
     self['buttonOK'].set_sensitive(False)
     self.selection = None
 
+    for id, name in shows:
+      self.model.append( (id,name))
 
 
   def on_treeviewTvdbResults_cursor_changed(self, w):
@@ -182,7 +184,6 @@ class DialogSearchTvdb(DialogBase):
   
         shows = self.tvdb.get_matching_shows(self['entrySearchTvdb'].get_text())
         for id, name in shows:
-          print id, name, type(id), type(name)
           self.model.append( (id,name))
 
     self.run_busy(action)
@@ -213,8 +214,6 @@ class DialogEditShow(DialogBase):
 
 
   def on_actionSelectBanner_activate(self, _):
-
-    print "on button press!"
 
     bannerlist = self.tvdb.get_show_image_choices(self['entry_id'].get_text())
     dlg = DialogSelectBanner(bannerlist)
@@ -247,19 +246,33 @@ class DialogEditShow(DialogBase):
 
   def on_actionDialogSearchTvdb_activate(self, _):
 
-    dlg = DialogSearchTvdb()
-    try:
-      if dlg.run() == gtk.RESPONSE_OK and dlg.selection:
-        id,name = dlg.selection
-        show = self.tvdb.get_show(id)
-        for f in self.FIELDS:
-          value = getattr(show, f)
-          self['entry_' + f].set_text( str(value) )
-          self.meta[f] = value
-    finally:
-      dlg.destroy()
+    shows = self.tvdb.get_matching_shows(self['entry_name'].get_text())
+    id,name = (None, None)
 
+    if len(shows) == 1:
+      id,name = shows[0]
+    elif len(shows) > 0:
+      dlg = DialogSearchTvdb(shows, self['entry_name'].get_text())
+      try:
+        if dlg.run() == gtk.RESPONSE_OK and dlg.selection:
+          id,name = dlg.selection
+      finally:
+        dlg.destroy()
+    if id:
+      show = self.tvdb.get_show(id)
+      for f in self.FIELDS:
+         value = getattr(show, f)
+         self['entry_' + f].set_text( str(value) )
+         self.meta[f] = value
 
+    if id and 'banner' not in self.meta.keys():
+      bannerlist = self.tvdb.get_show_image_choices(self['entry_id'].get_text())
+      url,type = filter(lambda a: a[1] == 'series', bannerlist)[0]
+      fn = url.split('/')[-1]
+      fn = os.path.join(DATADIR, fn)
+      open(fn, "w").write(urllib2.urlopen(url).read())
+      self.meta['banner'] = fn
+      self['image1'].set_from_file( fn )
 
 
 
